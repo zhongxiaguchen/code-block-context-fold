@@ -2,6 +2,11 @@
 
 本项目使用 [语义化版本](https://semver.org/lang/zh-CN/)，版本号与 `manifest.json` 保持一致。
 
+## 3.4.2
+
+- `isDesktopOnly` 改为 `true`。插件本身没有用到桌面专属 API，但没有在移动端实测过，
+  与其对外声称支持、让用户踩坑，不如先如实标注；将来实测通过再改回 `false` 即可。
+
 ## 3.4.1
 
 - 显示名改为 **Code Block Parameter Fold**，`description` 改为英文。

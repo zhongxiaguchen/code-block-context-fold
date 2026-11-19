@@ -8,9 +8,9 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.4.1
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.4.2
 
-> 3.4.1 起插件显示名改为英文 **Code Block Parameter Fold**（`manifest.json` 无法按语言本地化，而社区列表由英文用户浏览）。界面文案仍然跟随 Obsidian 的语言设置，中文环境下全是中文。
+> 3.4.1 起插件显示名改为英文 **Code Block Parameter Fold**（`manifest.json` 无法按语言本地化，而社区列表由英文用户浏览）。界面文案仍然跟随 Obsidian 的语言设置，中文环境下全是中文。3.4.2 起标注为仅桌面端。
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -30,7 +30,7 @@
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.4.1.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.4.2.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「Code Block Parameter Fold」。
@@ -117,6 +117,7 @@ node scripts/deploy.mjs --vault "D:\某个库"
 - 方括号 `[ ]` 属于结构字符，不能出现在参数名、选项名或注释里（`_` 已经没有限制了）。
 - 笔记被改动后，插件靠锚点重新定位折叠位置；当同一段文本出现多次且锚点无法区分时，它会放弃恢复而不是猜一个位置。
 - 界面语言跟随 Obsidian 设置，目前提供中文和英文；其他语言回退到英文。
+- **目前仅桌面端**：插件没有用到桌面专属 API，但没在移动端实测过，所以 manifest 标注 `isDesktopOnly: true`。实测通过后改回 `false` 即可。
 
 ## 开发
 

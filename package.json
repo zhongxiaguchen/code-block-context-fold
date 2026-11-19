@@ -1,6 +1,6 @@
 {
   "name": "code-block-context-fold",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "description": "Fold name[options] inside code blocks into a clickable tag, or show options and comments in a hover popup.",
   "private": true,
   "license": "GPL-3.0-or-later",

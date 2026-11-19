@@ -1,5 +1,10 @@
 Fold `name[options]` inside code blocks into a clickable tag — expand it when you need the details, or switch to a hover popup that lists every option with its comment.
 
+## 3.4.2 变更
+
+- 标注为**仅桌面端**（`isDesktopOnly: true`）。插件本身没有用到桌面专属 API，但没有在移动端实测过，
+  与其对外声称支持、让用户踩坑，不如先如实标注。将来实测通过后改回 `false` 即可。
+
 ## 3.4.1 变更
 
 - 插件显示名改为 **Code Block Parameter Fold**，`description` 改为英文，为提交社区列表做准备。
