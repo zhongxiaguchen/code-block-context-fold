@@ -4,6 +4,7 @@
   "version": "2.6.0",
   "minAppVersion": "1.1.0",
   "description": "把代码块里的“参数[内容]”折叠成可点击的标签，也可切换成悬浮显示选项与注释的弹窗。",
-  "author": "Local",
+  "author": "Zonvon",
+  "authorUrl": "https://github.com/zhongxiaguchen",
   "isDesktopOnly": false
 }

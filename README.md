@@ -6,6 +6,8 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
+仓库：<https://github.com/zhongxiaguchen/Obsidian_Plugin>　·　最新版本：2.6.0
+
 ![两种显示方式](docs/display-modes.svg)
 
 ## 功能
@@ -20,9 +22,10 @@
 
 ### 手动安装（任意库通用）
 
-1. 下载本仓库（`Code → Download ZIP`），或从 Releases 下载 `manifest.json`、`main.js`、`styles.css`。
+1. 从 [Releases](https://github.com/zhongxiaguchen/Obsidian_Plugin/releases) 下载
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-2.6.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
-3. 把上面三个文件放进去。
+3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
 
 插件不绑定任何库：每个库各自保存自己的折叠记录，互不影响。
@@ -82,10 +85,13 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 ## 开发
 
+需要 Node.js ≥ 22.8。
+
 ```bash
-npm run build        # 零依赖打包：src/ → main.js
+npm run build         # 零依赖打包：src/ → main.js
 npm run build:esbuild # 用 esbuild 打包（需先 npm i）
-npm test             # 单元测试（Node 内置 test runner）
+npm test              # 单元测试（Node 内置 test runner）
+npm run release       # 校验 + 构建 + 测试 + 打包 zip
 ```
 
 `npm run build` 用的是 `scripts/build.mjs`——一个只做「把相对 require 内联成单文件」的
@@ -110,18 +116,26 @@ src/
 scripts/
   build.mjs               零依赖打包
   deploy.mjs              部署到任意库
+  release.mjs             发布打包（校验 + zip）
 test/                     单元测试
 docs/                     README 用图
+.github/workflows/        tag 推送时自动建 Release
 main.js                   构建产物（随仓库分发）
 ```
 
 ## 发布
 
-1. 把 `manifest.json` 里的 `author` 改成你自己的署名（当前仍是占位值 `Local`）。
-2. 更新 `manifest.json` 的 `version`，并在 `versions.json` 里补一行 `"版本": "最低 Obsidian 版本"`。
-3. `npm run build`，确认 `main.js` 已更新。
-4. 打 tag（与 version 一致），在 Releases 里附上 `manifest.json`、`main.js`、`styles.css`。
+完整清单见 [RELEASING.md](RELEASING.md)，核心四步：
+
+1. 同步改 `manifest.json`、`package.json` 的 `version`，并在 `versions.json` 补条目。
+2. `npm run release`。
+3. `git tag <version>`（**不要加 `v` 前缀**）→ 推送。
+4. 建 Release，附上 `manifest.json`、`main.js`、`styles.css` 和 zip。
+
+推送 tag 时 `.github/workflows/release.yml` 会自动构建并创建 Release，也可以本地手动建。
 
 ## 许可证
 
 GPL-3.0-or-later，见 [LICENSE](LICENSE)。
+
+Copyright (C) 2026 Zonvon

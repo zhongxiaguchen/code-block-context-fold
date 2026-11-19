@@ -2,6 +2,9 @@
 node_modules/
 *.log
 
+# 发布打包产物
+dist/
+
 # Obsidian 会把插件数据写在这里，其中包含你自己的笔记路径与正文片段，绝不能提交
 data.json
 

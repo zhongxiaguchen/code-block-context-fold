@@ -1,0 +1,45 @@
+name: Release
+
+# 推送与 manifest.json 中 version 完全一致的 tag 时触发，例如：git tag 2.6.0 && git push origin 2.6.0
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 校验 tag 与 manifest 版本一致
+        run: |
+          node -e "const m=require('./manifest.json');const t=process.env.GITHUB_REF_NAME;if(t!==m.version){console.error('tag 与 manifest.json 版本不一致: tag='+t+' version='+m.version);process.exit(1)}console.log('版本一致: '+t)"
+
+      - name: 构建
+        run: node scripts/build.mjs
+
+      - name: 测试
+        run: node --test --test-isolation=none "test/*.test.mjs"
+
+      - name: 打包
+        run: node scripts/release.mjs --skip-tests
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            manifest.json
+            main.js
+            styles.css
+            dist/*.zip
+          fail_on_unmatched_files: true
