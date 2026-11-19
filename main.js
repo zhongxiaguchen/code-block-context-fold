@@ -13,10 +13,15 @@ __modules["./src/format/parameters.js"] = function (module, exports, __require) 
 /**
  * 参数表达式的解析与序列化。
  *
- * 存储格式：`参数名[ 值//注释 _ 值//注释 ]`
- * - `_` 分隔选项
- * - `//` 之后到选项结束为注释
- * - 名称、值、注释都不允许出现方括号与下划线，避免解析歧义
+ * 存储格式：`参数名[ 每行一个选项 ]`，`//` 之后到行尾是注释。
+ *
+ *   混合模式[
+ *     Normal//正常混合
+ *     Add//相加，越高越亮
+ *   ]
+ *
+ * 用换行分隔选项（而不是某个分隔符），参数名、选项名和注释里就都能自由出现
+ * `_`、`=`、括号以外的符号；只有方括号仍然是结构字符。
  */
 
 function parseParameterOptions(expression) {
@@ -24,35 +29,36 @@ function parseParameterOptions(expression) {
 	if (bracketFrom < 0 || !expression.endsWith("]")) return [];
 	const content = expression.slice(bracketFrom + 1, -1);
 	return content
-		.split("_")
-		.map((part) => {
-			const trimmed = part.trim();
-			if (!trimmed) return null;
-			const commentFrom = trimmed.indexOf("//");
-			return {
-				value: (commentFrom >= 0 ? trimmed.slice(0, commentFrom) : trimmed).trim(),
-				comment: (commentFrom >= 0 ? trimmed.slice(commentFrom + 2) : "").trim(),
-			};
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.map((line) => {
+			const commentFrom = line.indexOf("//");
+			const value = (commentFrom >= 0 ? line.slice(0, commentFrom) : line).trim();
+			const comment = commentFrom >= 0 ? line.slice(commentFrom + 2).trim() : "";
+			return value ? { value, comment } : null;
 		})
-		.filter((option) => option?.value);
+		.filter(Boolean);
 }
 
 function serializeParameterOptions(label, options) {
-	label = label.trim();
-	if (!label || /[\r\n\[\]_]/.test(label) || label.includes("//")) {
-		throw new Error("请填写参数名称，名称不能包含换行、方括号、下划线或 //");
-	}
+	label = String(label || "").trim();
+	if (!label) throw new Error("请填写参数名称");
+	if (/[\r\n\[\]]/.test(label)) throw new Error("参数名称不能包含换行或方括号");
 	if (!options.length) throw new Error("请至少添加一个选项");
+
 	const parts = options.map((option) => {
-		const value = option.value.trim();
-		const comment = option.comment.trim();
+		const value = String(option.value || "").trim();
+		// 注释允许换行输入，但落盘时压成一行——换行现在是选项分隔符
+		const comment = String(option.comment || "").replace(/\s+/g, " ").trim();
 		if (!value) throw new Error("每个选项都需要填写名称");
-		if (/[\r\n\[\]_]/.test(value) || value.includes("//") || /[\[\]_]/.test(comment)) {
-			throw new Error("选项不能包含换行、方括号、下划线或 //；注释不能包含方括号或下划线");
-		}
+		if (/[\r\n\[\]]/.test(value)) throw new Error("选项名称不能包含换行或方括号");
+		if (value.includes("//")) throw new Error("选项名称不能包含 //，它会被当成注释起点");
+		if (/[\[\]]/.test(comment)) throw new Error("注释不能包含方括号");
 		return "  " + value + (comment ? "//" + comment : "");
 	});
-	return label + "[\n" + parts.join("_\n") + "\n]";
+
+	return label + "[\n" + parts.join("\n") + "\n]";
 }
 
 module.exports = { parseParameterOptions, serializeParameterOptions };
@@ -853,9 +859,10 @@ class ParameterSetupModal extends Modal {
 			value.type = "text";
 			value.placeholder = "例如：Normal";
 			value.value = option.value;
-			const commentLabel = append(row, "label", "注释（可选，支持换行）");
-			const comment = append(commentLabel, "textarea");
-			comment.rows = 2;
+			const commentLabel = append(row, "label", "注释（可选）");
+			const comment = append(commentLabel, "input");
+			comment.type = "text";
+			comment.placeholder = "例如：剔除背面，默认值";
 			comment.value = option.comment;
 			const remove = append(row, "button", "删除此选项");
 			remove.type = "button";
@@ -871,7 +878,7 @@ class ParameterSetupModal extends Modal {
 		const add = append(content, "button", "+ 添加一个选项");
 		add.type = "button";
 		add.addEventListener("click", () => addRow());
-		append(content, "p", "当前格式使用 _ 分隔选项，// 开始注释。名称和注释暂不支持 _ 和方括号。");
+		append(content, "p", "每行一个选项，// 之后是注释。参数名、选项名和注释里不能出现方括号。");
 		const actions = append(content, "div", "", "parameter-setup-actions");
 		const cancel = append(actions, "button", "取消");
 		cancel.addEventListener("click", () => this.close());

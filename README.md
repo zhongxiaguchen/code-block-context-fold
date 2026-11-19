@@ -6,7 +6,7 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：2.7.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.0.0
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -24,12 +24,23 @@
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-2.7.0.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.0.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
 
 插件不绑定任何库：每个库各自保存自己的折叠记录，互不影响。
+
+### 从 2.x 升级到 3.0
+
+3.0 把选项分隔符从 `_` 改成了换行。如果你之前用「插入参数选项」面板生成过内容，
+跑一次迁移脚本（默认只预演，`--apply` 才写盘，写入前自动备份）：
+
+```bash
+node scripts/migrate-legacy-format.mjs --vault "D:\某个库" --apply
+```
+
+手写的单行 `A[a/b/c]` 不会被改写。
 
 ### 开发时一键部署
 
@@ -58,13 +69,14 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 ```
 混合模式[
-  Normal//正常混合_
+  Normal//正常混合
   Add//相加，越高越亮
 ]
 ```
 
-- 选项之间用 `_` 分隔，`//` 之后是注释。
-- 名称、选项、注释里不能出现方括号和下划线，否则无法区分结构。
+- **一行一个选项**，`//` 之后是注释。
+- 参数名、选项名里不能出现方括号和换行；注释里不能出现方括号。`_`、`=`、`+` 这些都可以随便用。
+- 注释支持多行输入，落盘时会压成一行（换行现在是选项分隔符）。
 
 ### 两种显示方式
 
@@ -82,7 +94,7 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 - **阅读视图的展开状态是一次性的**：在阅读视图里点开标签只影响当前渲染，不会写回编辑视图；编辑视图以插件数据里记录的展开状态为准。
 - **阅读视图按记录里保存的原文精确匹配**。如果笔记内容被改动过、而编辑视图还没重新打开同步记录，那一段在阅读视图里会保持原样，不会折叠。
-- `_` 与 `[ ]` 属于结构字符，不能出现在参数名、选项名或注释里。
+- 方括号 `[ ]` 属于结构字符，不能出现在参数名、选项名或注释里（`_` 已经没有限制了）。
 - 笔记被改动后，插件靠锚点重新定位折叠位置；当同一段文本出现多次且锚点无法区分时，它会放弃恢复而不是猜一个位置。
 
 ## 开发

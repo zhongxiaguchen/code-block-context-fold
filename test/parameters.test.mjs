@@ -12,23 +12,49 @@ test("选项序列化后能被解析回来", () => {
 		{ value: "Normal", comment: "正常混合" },
 		{ value: "Add", comment: "" },
 	]);
-	assert.equal(expression, "混合模式[\n  Normal//正常混合_\n  Add\n]");
+	assert.equal(expression, "混合模式[\n  Normal//正常混合\n  Add\n]");
 	assert.deepEqual(parseParameterOptions(expression), [
 		{ value: "Normal", comment: "正常混合" },
 		{ value: "Add", comment: "" },
 	]);
 });
 
-test("名称或选项含禁用字符时拒绝序列化", () => {
-	assert.throws(() => serializeParameterOptions("a_b", [{ value: "x", comment: "" }]), /参数名称/);
-	assert.throws(() => serializeParameterOptions("名称", [{ value: "x_y", comment: "" }]), /选项不能/);
-	assert.throws(() => serializeParameterOptions("名称", [{ value: "x", comment: "有[括号]" }]), /注释不能/);
+test("下划线不再需要转义，可以出现在值、注释和名称里", () => {
+	const expression = serializeParameterOptions("_MainTex_ST", [
+		{ value: "UNITY_OBJECT_TO_WORLD", comment: "需要 _MainTex 的缩放" },
+	]);
+	assert.match(expression, /^_MainTex_ST\[/);
+	assert.deepEqual(parseParameterOptions(expression), [
+		{ value: "UNITY_OBJECT_TO_WORLD", comment: "需要 _MainTex 的缩放" },
+	]);
+});
+
+test("注释里的换行会被压成一行", () => {
+	const expression = serializeParameterOptions("模式", [
+		{ value: "A", comment: "第一行\n第二行" },
+	]);
+	assert.equal(expression, "模式[\n  A//第一行 第二行\n]");
+});
+
+test("方括号与 // 仍然受限制", () => {
+	assert.throws(() => serializeParameterOptions("a[b", [{ value: "x", comment: "" }]), /方括号/);
+	assert.throws(() => serializeParameterOptions("名称", [{ value: "x]y", comment: "" }]), /方括号/);
+	assert.throws(() => serializeParameterOptions("名称", [{ value: "a//b", comment: "" }]), /\/\//);
+	assert.throws(() => serializeParameterOptions("名称", [{ value: "x", comment: "[注]" }]), /方括号/);
 	assert.throws(() => serializeParameterOptions("名称", []), /至少添加一个选项/);
+	assert.throws(() => serializeParameterOptions("  ", [{ value: "x", comment: "" }]), /参数名称/);
 });
 
 test("不是合法表达式的文本解析为空列表", () => {
 	assert.deepEqual(parseParameterOptions("没有方括号"), []);
 	assert.deepEqual(parseParameterOptions("A[未闭合"), []);
+});
+
+test("空行被忽略，行内多余空白被去掉", () => {
+	assert.deepEqual(parseParameterOptions("A[\n\n   x  //  说明  \n\n  y\n]"), [
+		{ value: "x", comment: "说明" },
+		{ value: "y", comment: "" },
+	]);
 });
 
 test("代码块扫描包含语言、序号与内容区间", () => {

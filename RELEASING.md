@@ -32,27 +32,31 @@ npm run release
 
 ## 3. 提交并打 tag
 
+下面的 `<version>` 换成 `manifest.json` 里的版本号，例如 `3.0.0`。
+
 ```bash
 git add -A
-git commit -m "release: 2.7.0"
-git tag 2.7.0
+git commit -m "release: <version>"
+git tag <version>
 git push origin main --tags
 ```
 
 **tag 必须和 `manifest.json` 里的 `version` 完全一致，且不要加 `v` 前缀。**
-Obsidian 按 tag 名找对应版本的 manifest，`v2.7.0` 会被当成找不到。
+Obsidian 按 tag 名找对应版本的 manifest，`v3.0.0` 会被当成找不到。
 
 ## 4. 建 GitHub Release
 
 ```bash
-gh release create 2.7.0 --title "代码块参数折叠 2.7.0" --notes-file RELEASE_NOTES.md \
-  manifest.json main.js styles.css dist/code-block-context-fold-2.7.0.zip
+gh release create <version> --title "代码块参数折叠 <version>" --notes-file RELEASE_NOTES.md \
+  manifest.json main.js styles.css dist/code-block-context-fold-<version>.zip
 ```
 
-没有 `gh` 就在网页上建：tag 选 `2.7.0`，标题随意，正文贴 `RELEASE_NOTES.md`，
+没有 `gh` 就在网页上建：tag 选 `<version>`，标题随意，正文贴 `RELEASE_NOTES.md`，
 **四个附件**：`manifest.json`、`main.js`、`styles.css`、zip。
 
 三个文件是硬要求——Obsidian 只认 Release 里的这三个资产，缺 `main.js` 就装不上。
+
+推 tag 时 `.github/workflows/release.yml` 也会自动做一遍同样的事，两条路选一条即可。
 
 ## 5. 发布后自检
 

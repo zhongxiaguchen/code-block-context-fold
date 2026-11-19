@@ -39,9 +39,10 @@ class ParameterSetupModal extends Modal {
 			value.type = "text";
 			value.placeholder = "例如：Normal";
 			value.value = option.value;
-			const commentLabel = append(row, "label", "注释（可选，支持换行）");
-			const comment = append(commentLabel, "textarea");
-			comment.rows = 2;
+			const commentLabel = append(row, "label", "注释（可选）");
+			const comment = append(commentLabel, "input");
+			comment.type = "text";
+			comment.placeholder = "例如：剔除背面，默认值";
 			comment.value = option.comment;
 			const remove = append(row, "button", "删除此选项");
 			remove.type = "button";
@@ -57,7 +58,7 @@ class ParameterSetupModal extends Modal {
 		const add = append(content, "button", "+ 添加一个选项");
 		add.type = "button";
 		add.addEventListener("click", () => addRow());
-		append(content, "p", "当前格式使用 _ 分隔选项，// 开始注释。名称和注释暂不支持 _ 和方括号。");
+		append(content, "p", "每行一个选项，// 之后是注释。参数名、选项名和注释里不能出现方括号。");
 		const actions = append(content, "div", "", "parameter-setup-actions");
 		const cancel = append(actions, "button", "取消");
 		cancel.addEventListener("click", () => this.close());
