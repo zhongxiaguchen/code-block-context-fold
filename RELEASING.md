@@ -79,6 +79,8 @@ gh release create <version> --title "代码块参数折叠 <version>" --notes-fi
       且附件里有 `main.js`、`manifest.json`、`styles.css`。
 - [ ] `manifest.json` 的 `id`、`name`、`description` 里**没有 "obsidian" 这个词**（审核明确禁止）。
 - [ ] README 说清楚：插件做什么、怎么安装、**是否联网 / 是否收集数据**。
+- [ ] README 有一张能看懂的演示素材（录法见 [docs/demo-guide.md](docs/demo-guide.md)）。
+  目前用的是 `docs/display-modes.svg` 静态示意，换成 GIF 会更抓人。
 - [ ] 仓库名不要暗示和官方有关系。`Obsidian_Plugin` 这种名字大概率被要求改掉，
       建议先改成 `code-block-context-fold`（改完 GitHub 会把旧地址 301 到新地址，
       本地 `git remote set-url` 一次即可）。
