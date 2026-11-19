@@ -6,7 +6,7 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.1.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.2.0
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -15,16 +15,17 @@
 - **普通折叠**：`参数[很长的选项列表]` → 只显示蓝色下划线的 `参数`，`[内容]` 收起来；点一下展开。
 - **选项悬浮弹窗**：折叠成一个药丸状的 `参数 ▾`，鼠标移上去浮出选项列表，再移到某个选项上浮出它的注释。
 - **右键菜单**：在标签上右键即可编辑选项、切换显示方式、展开或取消折叠。
-- **命令面板**：`折叠选中的参数内容`、`取消光标处的参数折叠`。
+- **命令面板**：`折叠选中的参数内容`、`取消光标处的参数折叠`、`打开折叠总览`。
 - **编辑视图和阅读视图都生效**：切到阅读视图、导出 PDF 时折叠依然保留，标签可以点击展开。
 - **记录跟着笔记走**：折叠位置写进插件数据，重开笔记自动恢复；笔记重命名时记录跟着迁移。
+- **有设置页和折叠总览**：默认显示方式、阅读视图开关；总览里能盘点、跳转、逐条删除、清理失效记录。
 
 ## 安装
 
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.1.0.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.2.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
@@ -82,6 +83,18 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 在标签上右键 → **显示方式：普通折叠 / 选项悬浮弹窗**。切换只影响显示，不修改笔记内容。
 
+想在设置里改新折叠的默认形态，见下面的「设置与总览」。
+
+## 设置与总览
+
+设置 → 第三方插件 → 代码块参数折叠：
+
+- **默认显示方式**：新折叠用普通折叠还是选项悬浮弹窗；已存在的项目可以在标签上右键单独切换。
+- **阅读视图也折叠**：关掉后只在编辑视图生效，阅读视图和导出 PDF 保持原文。
+- **折叠总览**：按笔记分组列出本库所有折叠，点笔记名直接跳过去，逐条删除，也能一键清理指向已删除笔记的失效记录。
+
+总览也可以从左侧栏的列表图标，或命令面板「打开折叠总览」打开。
+
 ## 数据与隐私
 
 折叠记录存在 `.obsidian/plugins/code-block-context-fold/data.json`，只在本机：
@@ -127,9 +140,13 @@ src/
   reading/source.js       阅读视图的源码快照与锚点投影（复用编辑视图的打分）
   reading/render.js       阅读视图 / 导出时的折叠渲染
   format/parameters.js    参数表达式解析与序列化
+  settings/defaults.js    设置项默认值与归一化
+  settings/overview.js    折叠总览的数据投影
   ui/options-dom.js       选项药丸与悬浮面板的 DOM（编辑器与阅读视图共用）
   ui/options-widget.js    选项弹窗的 CodeMirror 组件封装
   ui/setup-modal.js       参数选项编辑弹窗
+  ui/settings-tab.js      设置页
+  ui/overview-modal.js    折叠总览弹窗
   util/{id,text}.js       小工具
 scripts/
   build.mjs               零依赖打包

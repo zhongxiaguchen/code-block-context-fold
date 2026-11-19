@@ -906,6 +906,275 @@ class ParameterSetupModal extends Modal {
 
 module.exports = { ParameterSetupModal };
 };
+__modules["./src/settings/overview.js"] = function (module, exports, __require) {
+/**
+ * 折叠总览：把 data.json 里的记录摊平成「按笔记分组」的列表。
+ *
+ * 纯函数，不碰 Obsidian API——文件是否存在由调用方用 fileExists 判断，
+ * 这样分组、排序、失效识别都能单独测。
+ */
+
+const PREVIEW_LENGTH = 42;
+
+function labelOf(record) {
+	if (record.anchor?.label) return record.anchor.label;
+	const expression = record.expression || "";
+	const bracketFrom = expression.indexOf("[");
+	return bracketFrom > 0 ? expression.slice(0, bracketFrom).trimEnd() : expression;
+}
+
+function previewOf(record) {
+	const expression = record.expression || "";
+	const bracketFrom = expression.indexOf("[");
+	if (bracketFrom < 0) return "";
+	const content = expression.slice(bracketFrom + 1, expression.endsWith("]") ? -1 : undefined);
+	const firstLine = content
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(Boolean)[0] || "";
+	const text = firstLine || content.trim();
+	return text.length > PREVIEW_LENGTH ? text.slice(0, PREVIEW_LENGTH) + "…" : text;
+}
+
+function buildOverview(savedData, fileExists) {
+	const groups = [];
+	const stale = [];
+	const foldsByFile = savedData?.foldsByFile || {};
+
+	for (const [path, records] of Object.entries(foldsByFile)) {
+		if (!Array.isArray(records) || !records.length) continue;
+
+		if (!fileExists(path)) {
+			stale.push({ path, count: records.length });
+			continue;
+		}
+
+		groups.push({
+			path,
+			records: records.map((record) => ({
+				id: record.id,
+				label: labelOf(record),
+				preview: previewOf(record),
+				displayMode: record.displayMode === "options" ? "options" : "standard",
+				expanded: Boolean(record.expanded),
+			})),
+		});
+	}
+
+	groups.sort((left, right) => left.path.localeCompare(right.path, "zh"));
+	stale.sort((left, right) => left.path.localeCompare(right.path, "zh"));
+
+	return {
+		groups,
+		stale,
+		total: groups.reduce((sum, group) => sum + group.records.length, 0),
+	};
+}
+
+module.exports = { buildOverview, labelOf, previewOf, PREVIEW_LENGTH };
+};
+__modules["./src/ui/overview-modal.js"] = function (module, exports, __require) {
+const { MarkdownView, Modal } = require("obsidian");
+const { buildOverview } = __require("./src/settings/overview.js");
+const { parameterFoldField, removeRegionEffect } = __require("./src/editor/decorations.js");
+
+/**
+ * 折叠总览：按笔记分组列出所有折叠，支持跳转、单条删除、清理失效记录。
+ */
+class FoldOverviewModal extends Modal {
+	constructor(app, plugin) {
+		super(app);
+		this.plugin = plugin;
+	}
+
+	onOpen() {
+		this.render();
+	}
+
+	onClose() {
+		this.contentEl.replaceChildren();
+	}
+
+	render() {
+		const { contentEl } = this;
+		contentEl.replaceChildren();
+		contentEl.addClass("inline-code-fold-overview");
+
+		const overview = buildOverview(this.plugin.savedData, (path) =>
+			Boolean(this.app.vault.getAbstractFileByPath(path)),
+		);
+
+		const header = contentEl.createDiv({ cls: "inline-code-fold-overview-header" });
+		header.createEl("h2", { text: "折叠总览" });
+		header.createEl("p", {
+			text: `${overview.groups.length} 篇笔记，共 ${overview.total} 处折叠`,
+			cls: "setting-item-description",
+		});
+
+		if (!overview.groups.length && !overview.stale.length) {
+			contentEl.createEl("p", { text: "还没有任何折叠。" });
+			return;
+		}
+
+		for (const group of overview.groups) {
+			const section = contentEl.createDiv({ cls: "inline-code-fold-overview-group" });
+			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
+
+			const link = title.createEl("a", { text: group.path, cls: "inline-code-fold-overview-path" });
+			link.addEventListener("click", () => {
+				const file = this.app.vault.getAbstractFileByPath(group.path);
+				if (!file) return;
+				this.close();
+				void this.app.workspace.getLeaf(false).openFile(file);
+			});
+			title.createSpan({ text: `　${group.records.length} 处`, cls: "setting-item-description" });
+
+			const list = section.createDiv({ cls: "inline-code-fold-overview-list" });
+			for (const record of group.records) {
+				this.renderRecord(list, group.path, record);
+			}
+		}
+
+		if (overview.stale.length) {
+			const section = contentEl.createDiv({ cls: "inline-code-fold-overview-group" });
+			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
+			title.createSpan({
+				text: `已失效（笔记不存在）　${overview.stale.length} 篇`,
+				cls: "inline-code-fold-overview-stale",
+			});
+
+			const list = section.createDiv({ cls: "inline-code-fold-overview-list" });
+			for (const item of overview.stale) {
+				const row = list.createDiv({ cls: "inline-code-fold-overview-row" });
+				row.createSpan({ text: item.path, cls: "inline-code-fold-overview-label" });
+				row.createSpan({ text: `　${item.count} 处`, cls: "setting-item-description" });
+			}
+
+			const actions = section.createDiv({ cls: "inline-code-fold-overview-actions" });
+			const clean = actions.createEl("button", { text: `清理这 ${overview.stale.length} 篇的失效记录` });
+			clean.addEventListener("click", async () => {
+				for (const item of overview.stale) delete this.plugin.savedData.foldsByFile[item.path];
+				await this.plugin.saveData(this.plugin.savedData);
+				this.render();
+			});
+		}
+	}
+
+	renderRecord(list, path, record) {
+		const row = list.createDiv({ cls: "inline-code-fold-overview-row" });
+
+		row.createSpan({ text: record.label, cls: "inline-code-fold-overview-label" });
+		if (record.preview) {
+			row.createSpan({ text: record.preview, cls: "inline-code-fold-overview-preview" });
+		}
+		row.createSpan({
+			text: record.displayMode === "options" ? "弹窗" : "折叠",
+			cls: "inline-code-fold-overview-badge",
+		});
+		if (record.expanded) {
+			row.createSpan({ text: "已展开", cls: "inline-code-fold-overview-badge" });
+		}
+
+		const remove = row.createEl("button", { text: "删除", cls: "inline-code-fold-overview-remove" });
+		remove.addEventListener("click", async () => {
+			await this.plugin.removeSavedRegion(path, record.id);
+			this.detachFromOpenView(path, record.id);
+			this.render();
+		});
+	}
+
+	/** 删掉记录的同时，如果这篇笔记正开着，把编辑器里的装饰也摘掉。 */
+	detachFromOpenView(path, regionId) {
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view?.file || view.file.path !== path || !view.editor?.cm) return;
+		const field = view.editor.cm.state.field(parameterFoldField, false);
+		if (!field?.regions.some((region) => region.id === regionId)) return;
+		view.editor.cm.dispatch({ effects: removeRegionEffect.of(regionId) });
+	}
+}
+
+module.exports = FoldOverviewModal;
+};
+__modules["./src/ui/settings-tab.js"] = function (module, exports, __require) {
+const { PluginSettingTab, Setting } = require("obsidian");
+const FoldOverviewModal = __require("./src/ui/overview-modal.js");
+
+/**
+ * 设置页：两个行为开关，外加入口。
+ */
+class FoldSettingsTab extends PluginSettingTab {
+	constructor(app, plugin) {
+		super(app, plugin);
+		this.plugin = plugin;
+	}
+
+	display() {
+		const { containerEl } = this;
+		containerEl.empty();
+
+		new Setting(containerEl)
+			.setName("默认显示方式")
+			.setDesc("新折叠的项目用哪种形态；已有项目可在标签上右键单独切换。")
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("standard", "普通折叠（点标签展开）")
+					.addOption("options", "选项悬浮弹窗（悬停看选项）")
+					.setValue(this.plugin.settings.defaultDisplayMode)
+					.onChange(async (value) => {
+						this.plugin.settings.defaultDisplayMode = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("阅读视图也折叠")
+			.setDesc("关闭后只在编辑视图生效，阅读视图和导出 PDF 保持原文。")
+			.addToggle((toggle) =>
+				toggle.setValue(this.plugin.settings.readingView).onChange(async (value) => {
+					this.plugin.settings.readingView = value;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("折叠总览")
+			.setDesc("查看本库所有折叠、跳到对应笔记，以及清理已失效的记录。")
+			.addButton((button) =>
+				button.setButtonText("打开").onClick(() => {
+					new FoldOverviewModal(this.app, this.plugin).open();
+				}),
+			);
+
+		containerEl.createEl("p", {
+			text: "折叠记录保存在本插件目录的 data.json 里，含笔记路径与正文片段，请勿分享该文件。",
+			cls: "setting-item-description",
+		});
+	}
+}
+
+module.exports = FoldSettingsTab;
+};
+__modules["./src/settings/defaults.js"] = function (module, exports, __require) {
+/**
+ * 插件设置：只有开关类选项，没有需要调参的数值。
+ * 设置和折叠记录存在同一个 data.json 里，多一个 settings 字段。
+ */
+
+const DEFAULT_SETTINGS = Object.freeze({
+	defaultDisplayMode: "standard",
+	readingView: true,
+});
+
+function normalizeSettings(raw) {
+	const source = raw && typeof raw === "object" ? raw : {};
+	return {
+		defaultDisplayMode: source.defaultDisplayMode === "options" ? "options" : "standard",
+		readingView: source.readingView !== false,
+	};
+}
+
+module.exports = { DEFAULT_SETTINGS, normalizeSettings };
+};
 __modules["./src/editor/text-range.js"] = function (module, exports, __require) {
 /**
  * 在「一组文本节点」上定位一个字符区间。
@@ -1155,7 +1424,7 @@ function registerSelectedParameter(editor) {
 		...parsedRegion,
 		id: createRegionId(),
 		filePath,
-		displayMode: "standard",
+		displayMode: plugin?.settings?.defaultDisplayMode || "standard",
 	};
 
 	const editorView = editor.cm;
@@ -1230,6 +1499,9 @@ const { selectRecordCandidate } = __require("./src/editor/recover.js");
 const { parseParameterOptions } = __require("./src/format/parameters.js");
 const { createRegionId } = __require("./src/util/id.js");
 const { ParameterSetupModal } = __require("./src/ui/setup-modal.js");
+const FoldSettingsTab = __require("./src/ui/settings-tab.js");
+const FoldOverviewModal = __require("./src/ui/overview-modal.js");
+const { normalizeSettings } = __require("./src/settings/defaults.js");
 const { applyReadingRegions } = __require("./src/reading/render.js");
 const { createTextSurface, resolveReadingRegions, findRenderedBlock } = __require("./src/reading/source.js");
 const {
@@ -1273,7 +1545,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 			const region = {
 				id: existing?.id || createRegionId(),
 				filePath,
-				displayMode: "options",
+				displayMode: this.settings?.defaultDisplayMode || "options",
 				label,
 				expression,
 				labelFrom,
@@ -1342,9 +1614,15 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 			(await this.loadData()) || {},
 		);
 		await this.migrateSavedData();
+		this.settings = normalizeSettings(this.savedData.settings);
+		this.addSettingTab(new FoldSettingsTab(this.app, this));
+		this.addRibbonIcon("list", "折叠总览", () => {
+			new FoldOverviewModal(this.app, this).open();
+		});
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
 		// 阅读视图：把保存的记录按锚点投影到渲染后的代码块上，与编辑视图同一套匹配
 		this.registerMarkdownPostProcessor(async (element, context) => {
+			if (!this.settings.readingView) return;
 			const records = this.savedData.foldsByFile[context.sourcePath];
 			if (!records?.length) return;
 			const codes = element.querySelectorAll("pre > code");
@@ -1495,6 +1773,14 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "open-fold-overview",
+			name: "打开折叠总览",
+			callback: () => {
+				new FoldOverviewModal(this.app, this).open();
+			},
+		});
+
+		this.addCommand({
 			id: "remove-parameter-fold-at-cursor",
 			name: "取消光标处的参数折叠",
 			editorCheckCallback: (checking, editor) => {
@@ -1529,6 +1815,11 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		const entry = { text, surface, blocks: listCodeBlocks(surface) };
 		this.readingSourceCache.set(path, entry);
 		return entry;
+	}
+
+	async saveSettings() {
+		this.savedData.settings = this.settings;
+		await this.saveData(this.savedData);
 	}
 
 	async migrateSavedData() {

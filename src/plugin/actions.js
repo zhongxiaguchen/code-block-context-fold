@@ -19,7 +19,7 @@ function registerSelectedParameter(editor) {
 		...parsedRegion,
 		id: createRegionId(),
 		filePath,
-		displayMode: "standard",
+		displayMode: plugin?.settings?.defaultDisplayMode || "standard",
 	};
 
 	const editorView = editor.cm;

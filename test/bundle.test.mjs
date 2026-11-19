@@ -36,6 +36,30 @@ function createMocks() {
 	}
 	class Notice {}
 	class TFile {}
+	class PluginSettingTab {
+		constructor(app, plugin) {
+			this.app = app;
+			this.plugin = plugin;
+			this.containerEl = {};
+		}
+	}
+	class Setting {
+		setName() {
+			return this;
+		}
+		setDesc() {
+			return this;
+		}
+		addDropdown() {
+			return this;
+		}
+		addToggle() {
+			return this;
+		}
+		addButton() {
+			return this;
+		}
+	}
 
 	class StateEffect {}
 	StateEffect.define = () => class DefinedEffect extends StateEffect {};
@@ -58,7 +82,7 @@ function createMocks() {
 	EditorView.decorations = { compute: (_deps, fn) => ({ compute: fn }) };
 
 	return {
-		obsidian: { Plugin, Modal, Menu, Notice, MarkdownView: class {}, TFile },
+		obsidian: { Plugin, Modal, Menu, Notice, MarkdownView: class {}, TFile, PluginSettingTab, Setting },
 		"@codemirror/state": { StateEffect, StateField },
 		"@codemirror/view": { Decoration, EditorView, WidgetType },
 	};

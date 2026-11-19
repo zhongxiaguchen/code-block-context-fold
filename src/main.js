@@ -16,6 +16,9 @@ const { selectRecordCandidate } = require("./editor/recover");
 const { parseParameterOptions } = require("./format/parameters");
 const { createRegionId } = require("./util/id");
 const { ParameterSetupModal } = require("./ui/setup-modal");
+const FoldSettingsTab = require("./ui/settings-tab");
+const FoldOverviewModal = require("./ui/overview-modal");
+const { normalizeSettings } = require("./settings/defaults");
 const { applyReadingRegions } = require("./reading/render");
 const { createTextSurface, resolveReadingRegions, findRenderedBlock } = require("./reading/source");
 const {
@@ -59,7 +62,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 			const region = {
 				id: existing?.id || createRegionId(),
 				filePath,
-				displayMode: "options",
+				displayMode: this.settings?.defaultDisplayMode || "options",
 				label,
 				expression,
 				labelFrom,
@@ -128,9 +131,15 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 			(await this.loadData()) || {},
 		);
 		await this.migrateSavedData();
+		this.settings = normalizeSettings(this.savedData.settings);
+		this.addSettingTab(new FoldSettingsTab(this.app, this));
+		this.addRibbonIcon("list", "折叠总览", () => {
+			new FoldOverviewModal(this.app, this).open();
+		});
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
 		// 阅读视图：把保存的记录按锚点投影到渲染后的代码块上，与编辑视图同一套匹配
 		this.registerMarkdownPostProcessor(async (element, context) => {
+			if (!this.settings.readingView) return;
 			const records = this.savedData.foldsByFile[context.sourcePath];
 			if (!records?.length) return;
 			const codes = element.querySelectorAll("pre > code");
@@ -281,6 +290,14 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "open-fold-overview",
+			name: "打开折叠总览",
+			callback: () => {
+				new FoldOverviewModal(this.app, this).open();
+			},
+		});
+
+		this.addCommand({
 			id: "remove-parameter-fold-at-cursor",
 			name: "取消光标处的参数折叠",
 			editorCheckCallback: (checking, editor) => {
@@ -315,6 +332,11 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		const entry = { text, surface, blocks: listCodeBlocks(surface) };
 		this.readingSourceCache.set(path, entry);
 		return entry;
+	}
+
+	async saveSettings() {
+		this.savedData.settings = this.settings;
+		await this.saveData(this.savedData);
 	}
 
 	async migrateSavedData() {

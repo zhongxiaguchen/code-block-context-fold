@@ -134,3 +134,83 @@
 .inline-code-fold-content[hidden] {
   display: none;
 }
+
+/* 折叠总览 */
+.inline-code-fold-overview {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.inline-code-fold-overview-header h2 {
+  margin: 0 0 4px;
+}
+
+.inline-code-fold-overview-group {
+  margin: 14px 0;
+}
+
+.inline-code-fold-overview-title {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.inline-code-fold-overview-path {
+  cursor: pointer;
+}
+
+.inline-code-fold-overview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inline-code-fold-overview-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+}
+
+.inline-code-fold-overview-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.inline-code-fold-overview-label {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.inline-code-fold-overview-preview {
+  flex: 1;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-code-fold-overview-badge {
+  padding: 0 4px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+.inline-code-fold-overview-remove {
+  margin-left: auto;
+  visibility: hidden;
+}
+
+.inline-code-fold-overview-row:hover .inline-code-fold-overview-remove {
+  visibility: visible;
+}
+
+.inline-code-fold-overview-stale {
+  color: var(--text-error);
+}
+
+.inline-code-fold-overview-actions {
+  margin-top: 8px;
+}
