@@ -3,15 +3,17 @@ const { buildOverview } = require("../settings/overview");
 const { parameterFoldField, removeRegionEffect } = require("../editor/decorations");
 
 /**
- * 折叠总览：按笔记分组列出所有折叠，支持跳转、单条删除、清理失效记录。
+ * 折叠总览：按笔记分组列出所有折叠，支持搜索、跳转、单条删除、清理失效记录。
  */
 class FoldOverviewModal extends Modal {
 	constructor(app, plugin) {
 		super(app);
 		this.plugin = plugin;
+		this.query = "";
 	}
 
 	onOpen() {
+		this.query = "";
 		this.render();
 	}
 
@@ -19,29 +21,64 @@ class FoldOverviewModal extends Modal {
 		this.contentEl.replaceChildren();
 	}
 
+	/** 搜索框和结果分开构建：输入时只重画结果，输入框本身不重建，焦点不丢。 */
 	render() {
 		const { contentEl } = this;
 		contentEl.replaceChildren();
 		contentEl.addClass("inline-code-fold-overview");
 
-		const overview = buildOverview(this.plugin.savedData, (path) =>
-			Boolean(this.app.vault.getAbstractFileByPath(path)),
-		);
-
 		const header = contentEl.createDiv({ cls: "inline-code-fold-overview-header" });
 		header.createEl("h2", { text: "折叠总览" });
-		header.createEl("p", {
-			text: `${overview.groups.length} 篇笔记，共 ${overview.total} 处折叠`,
-			cls: "setting-item-description",
+		this.countEl = header.createEl("p", { cls: "setting-item-description" });
+
+		const searchWrap = contentEl.createDiv({ cls: "inline-code-fold-overview-search" });
+		const input = searchWrap.createEl("input", {
+			type: "search",
+			placeholder: "搜索标签、选项或笔记名",
+		});
+		input.value = this.query;
+		input.addEventListener("input", () => {
+			this.query = input.value;
+			this.renderResults();
+		});
+		input.addEventListener("keydown", (event) => {
+			// 有搜索词时，Esc 先清空搜索，而不是直接关掉弹窗
+			if (event.key === "Escape" && this.query) {
+				event.stopPropagation();
+				this.query = "";
+				input.value = "";
+				this.renderResults();
+			}
 		});
 
+		this.resultsEl = contentEl.createDiv();
+		this.renderResults();
+		input.focus();
+	}
+
+	renderResults() {
+		const overview = buildOverview(
+			this.plugin.savedData,
+			(path) => Boolean(this.app.vault.getAbstractFileByPath(path)),
+			this.query,
+		);
+
+		this.countEl.textContent = overview.filtered
+			? `匹配 ${overview.total} / ${overview.allTotal} 处，${overview.groups.length} 篇笔记`
+			: `${overview.groups.length} 篇笔记，共 ${overview.total} 处折叠`;
+
+		const container = this.resultsEl;
+		container.replaceChildren();
+
 		if (!overview.groups.length && !overview.stale.length) {
-			contentEl.createEl("p", { text: "还没有任何折叠。" });
+			container.createEl("p", {
+				text: overview.filtered ? "没有匹配的折叠。" : "还没有任何折叠。",
+			});
 			return;
 		}
 
 		for (const group of overview.groups) {
-			const section = contentEl.createDiv({ cls: "inline-code-fold-overview-group" });
+			const section = container.createDiv({ cls: "inline-code-fold-overview-group" });
 			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
 
 			const link = title.createEl("a", { text: group.path, cls: "inline-code-fold-overview-path" });
@@ -60,7 +97,7 @@ class FoldOverviewModal extends Modal {
 		}
 
 		if (overview.stale.length) {
-			const section = contentEl.createDiv({ cls: "inline-code-fold-overview-group" });
+			const section = container.createDiv({ cls: "inline-code-fold-overview-group" });
 			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
 			title.createSpan({
 				text: `已失效（笔记不存在）　${overview.stale.length} 篇`,
@@ -79,7 +116,7 @@ class FoldOverviewModal extends Modal {
 			clean.addEventListener("click", async () => {
 				for (const item of overview.stale) delete this.plugin.savedData.foldsByFile[item.path];
 				await this.plugin.saveData(this.plugin.savedData);
-				this.render();
+				this.renderResults();
 			});
 		}
 	}
@@ -103,7 +140,7 @@ class FoldOverviewModal extends Modal {
 		remove.addEventListener("click", async () => {
 			await this.plugin.removeSavedRegion(path, record.id);
 			this.detachFromOpenView(path, record.id);
-			this.render();
+			this.renderResults();
 		});
 	}
 

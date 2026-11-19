@@ -908,10 +908,10 @@ module.exports = { ParameterSetupModal };
 };
 __modules["./src/settings/overview.js"] = function (module, exports, __require) {
 /**
- * 折叠总览：把 data.json 里的记录摊平成「按笔记分组」的列表。
+ * 折叠总览：把 data.json 里的记录摊平成「按笔记分组」的列表，并可按键词过滤。
  *
  * 纯函数，不碰 Obsidian API——文件是否存在由调用方用 fileExists 判断，
- * 这样分组、排序、失效识别都能单独测。
+ * 这样分组、排序、失效识别、搜索都能单独测。
  */
 
 const PREVIEW_LENGTH = 42;
@@ -936,29 +936,51 @@ function previewOf(record) {
 	return text.length > PREVIEW_LENGTH ? text.slice(0, PREVIEW_LENGTH) + "…" : text;
 }
 
-function buildOverview(savedData, fileExists) {
+function normalizeQuery(query) {
+	return String(query || "").trim().toLowerCase();
+}
+
+function includes(haystack, needle) {
+	return String(haystack || "").toLowerCase().includes(needle);
+}
+
+/**
+ * 过滤规则：
+ * - 笔记路径命中 → 这篇笔记下的折叠全部保留（想找某篇笔记时更顺手）
+ * - 否则只保留标签或选项预览命中的记录
+ */
+function buildOverview(savedData, fileExists, query = "") {
+	const needle = normalizeQuery(query);
 	const groups = [];
 	const stale = [];
 	const foldsByFile = savedData?.foldsByFile || {};
+	let allTotal = 0;
 
 	for (const [path, records] of Object.entries(foldsByFile)) {
 		if (!Array.isArray(records) || !records.length) continue;
 
 		if (!fileExists(path)) {
-			stale.push({ path, count: records.length });
+			if (!needle || includes(path, needle)) {
+				stale.push({ path, count: records.length });
+			}
 			continue;
 		}
 
-		groups.push({
-			path,
-			records: records.map((record) => ({
+		allTotal += records.length;
+
+		const pathMatches = needle && includes(path, needle);
+		const matched = records
+			.map((record) => ({
 				id: record.id,
 				label: labelOf(record),
 				preview: previewOf(record),
 				displayMode: record.displayMode === "options" ? "options" : "standard",
 				expanded: Boolean(record.expanded),
-			})),
-		});
+			}))
+			.filter((record) => !needle || pathMatches || includes(record.label, needle) || includes(record.preview, needle));
+
+		if (!matched.length) continue;
+		groups.push({ path, records: matched });
 	}
 
 	groups.sort((left, right) => left.path.localeCompare(right.path, "zh"));
@@ -968,10 +990,12 @@ function buildOverview(savedData, fileExists) {
 		groups,
 		stale,
 		total: groups.reduce((sum, group) => sum + group.records.length, 0),
+		allTotal,
+		filtered: Boolean(needle),
 	};
 }
 
-module.exports = { buildOverview, labelOf, previewOf, PREVIEW_LENGTH };
+module.exports = { buildOverview, labelOf, previewOf, normalizeQuery, PREVIEW_LENGTH };
 };
 __modules["./src/ui/overview-modal.js"] = function (module, exports, __require) {
 const { MarkdownView, Modal } = require("obsidian");
@@ -979,15 +1003,17 @@ const { buildOverview } = __require("./src/settings/overview.js");
 const { parameterFoldField, removeRegionEffect } = __require("./src/editor/decorations.js");
 
 /**
- * 折叠总览：按笔记分组列出所有折叠，支持跳转、单条删除、清理失效记录。
+ * 折叠总览：按笔记分组列出所有折叠，支持搜索、跳转、单条删除、清理失效记录。
  */
 class FoldOverviewModal extends Modal {
 	constructor(app, plugin) {
 		super(app);
 		this.plugin = plugin;
+		this.query = "";
 	}
 
 	onOpen() {
+		this.query = "";
 		this.render();
 	}
 
@@ -995,29 +1021,64 @@ class FoldOverviewModal extends Modal {
 		this.contentEl.replaceChildren();
 	}
 
+	/** 搜索框和结果分开构建：输入时只重画结果，输入框本身不重建，焦点不丢。 */
 	render() {
 		const { contentEl } = this;
 		contentEl.replaceChildren();
 		contentEl.addClass("inline-code-fold-overview");
 
-		const overview = buildOverview(this.plugin.savedData, (path) =>
-			Boolean(this.app.vault.getAbstractFileByPath(path)),
-		);
-
 		const header = contentEl.createDiv({ cls: "inline-code-fold-overview-header" });
 		header.createEl("h2", { text: "折叠总览" });
-		header.createEl("p", {
-			text: `${overview.groups.length} 篇笔记，共 ${overview.total} 处折叠`,
-			cls: "setting-item-description",
+		this.countEl = header.createEl("p", { cls: "setting-item-description" });
+
+		const searchWrap = contentEl.createDiv({ cls: "inline-code-fold-overview-search" });
+		const input = searchWrap.createEl("input", {
+			type: "search",
+			placeholder: "搜索标签、选项或笔记名",
+		});
+		input.value = this.query;
+		input.addEventListener("input", () => {
+			this.query = input.value;
+			this.renderResults();
+		});
+		input.addEventListener("keydown", (event) => {
+			// 有搜索词时，Esc 先清空搜索，而不是直接关掉弹窗
+			if (event.key === "Escape" && this.query) {
+				event.stopPropagation();
+				this.query = "";
+				input.value = "";
+				this.renderResults();
+			}
 		});
 
+		this.resultsEl = contentEl.createDiv();
+		this.renderResults();
+		input.focus();
+	}
+
+	renderResults() {
+		const overview = buildOverview(
+			this.plugin.savedData,
+			(path) => Boolean(this.app.vault.getAbstractFileByPath(path)),
+			this.query,
+		);
+
+		this.countEl.textContent = overview.filtered
+			? `匹配 ${overview.total} / ${overview.allTotal} 处，${overview.groups.length} 篇笔记`
+			: `${overview.groups.length} 篇笔记，共 ${overview.total} 处折叠`;
+
+		const container = this.resultsEl;
+		container.replaceChildren();
+
 		if (!overview.groups.length && !overview.stale.length) {
-			contentEl.createEl("p", { text: "还没有任何折叠。" });
+			container.createEl("p", {
+				text: overview.filtered ? "没有匹配的折叠。" : "还没有任何折叠。",
+			});
 			return;
 		}
 
 		for (const group of overview.groups) {
-			const section = contentEl.createDiv({ cls: "inline-code-fold-overview-group" });
+			const section = container.createDiv({ cls: "inline-code-fold-overview-group" });
 			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
 
 			const link = title.createEl("a", { text: group.path, cls: "inline-code-fold-overview-path" });
@@ -1036,7 +1097,7 @@ class FoldOverviewModal extends Modal {
 		}
 
 		if (overview.stale.length) {
-			const section = contentEl.createDiv({ cls: "inline-code-fold-overview-group" });
+			const section = container.createDiv({ cls: "inline-code-fold-overview-group" });
 			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
 			title.createSpan({
 				text: `已失效（笔记不存在）　${overview.stale.length} 篇`,
@@ -1055,7 +1116,7 @@ class FoldOverviewModal extends Modal {
 			clean.addEventListener("click", async () => {
 				for (const item of overview.stale) delete this.plugin.savedData.foldsByFile[item.path];
 				await this.plugin.saveData(this.plugin.savedData);
-				this.render();
+				this.renderResults();
 			});
 		}
 	}
@@ -1079,7 +1140,7 @@ class FoldOverviewModal extends Modal {
 		remove.addEventListener("click", async () => {
 			await this.plugin.removeSavedRegion(path, record.id);
 			this.detachFromOpenView(path, record.id);
-			this.render();
+			this.renderResults();
 		});
 	}
 

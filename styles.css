@@ -145,6 +145,14 @@
   margin: 0 0 4px;
 }
 
+.inline-code-fold-overview-search {
+  margin: 8px 0 6px;
+}
+
+.inline-code-fold-overview-search input {
+  width: 100%;
+}
+
 .inline-code-fold-overview-group {
   margin: 14px 0;
 }

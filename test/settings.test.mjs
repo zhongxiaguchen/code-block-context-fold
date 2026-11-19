@@ -72,6 +72,72 @@ test("笔记不存在时归入失效而不是普通分组", () => {
 });
 
 test("空数据不会抛错", () => {
-	assert.deepEqual(buildOverview({}, () => true), { groups: [], stale: [], total: 0 });
-	assert.deepEqual(buildOverview(undefined, () => true), { groups: [], stale: [], total: 0 });
+	const empty = { groups: [], stale: [], total: 0, allTotal: 0, filtered: false };
+	assert.deepEqual(buildOverview({}, () => true), empty);
+	assert.deepEqual(buildOverview(undefined, () => true), empty);
+});
+
+const SEARCH_DATA = {
+	foldsByFile: {
+		"Unity/Shader/结构.md": [
+			{ id: "1", expression: "参数[Opaque/Transparent]", anchor: { label: "参数" } },
+			{ id: "2", expression: "选项[On/Off]", anchor: { label: "选项" }, displayMode: "options" },
+		],
+		"数学/线性代数.md": [
+			{ id: "3", expression: "映射[可逆/不可逆]", anchor: { label: "映射" } },
+		],
+	},
+};
+
+test("搜索命中标签", () => {
+	const overview = buildOverview(SEARCH_DATA, () => true, "选项");
+	assert.equal(overview.filtered, true);
+	assert.equal(overview.total, 1);
+	assert.equal(overview.allTotal, 3);
+	assert.deepEqual(overview.groups.map((group) => group.path), ["Unity/Shader/结构.md"]);
+	assert.equal(overview.groups[0].records[0].label, "选项");
+});
+
+test("搜索命中选项预览", () => {
+	const overview = buildOverview(SEARCH_DATA, () => true, "可逆");
+	assert.equal(overview.total, 1);
+	assert.deepEqual(overview.groups.map((group) => group.path), ["数学/线性代数.md"]);
+});
+
+test("搜索命中笔记路径时保留该笔记全部折叠", () => {
+	const overview = buildOverview(SEARCH_DATA, () => true, "shader");
+	assert.equal(overview.groups.length, 1);
+	assert.equal(overview.groups[0].records.length, 2);
+	assert.equal(overview.total, 2);
+});
+
+test("搜索大小写不敏感，前后空格被忽略", () => {
+	assert.equal(buildOverview(SEARCH_DATA, () => true, "  SHADER  ").total, 2);
+	assert.equal(buildOverview(SEARCH_DATA, () => true, "transparent").total, 1);
+});
+
+test("没有匹配时返回空结果但保留总数", () => {
+	const overview = buildOverview(SEARCH_DATA, () => true, "不存在的东西");
+	assert.deepEqual(overview.groups, []);
+	assert.deepEqual(overview.stale, []);
+	assert.equal(overview.total, 0);
+	assert.equal(overview.allTotal, 3);
+	assert.equal(overview.filtered, true);
+});
+
+test("搜索也会过滤失效区", () => {
+	const data = {
+		foldsByFile: {
+			"gone-a.md": [{ id: "1", expression: "参数[a]" }],
+			"gone-b.md": [{ id: "2", expression: "参数[b]" }],
+			"here.md": [{ id: "3", expression: "参数[c]" }],
+		},
+	};
+	const exists = (path) => path === "here.md";
+	const all = buildOverview(data, exists);
+	assert.equal(all.stale.length, 2);
+
+	const filtered = buildOverview(data, exists, "gone-a");
+	assert.deepEqual(filtered.stale, [{ path: "gone-a.md", count: 1 }]);
+	assert.deepEqual(filtered.groups, []);
 });

@@ -6,7 +6,7 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.2.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.3.0
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -25,7 +25,7 @@
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.2.0.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.3.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
@@ -91,7 +91,7 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 - **默认显示方式**：新折叠用普通折叠还是选项悬浮弹窗；已存在的项目可以在标签上右键单独切换。
 - **阅读视图也折叠**：关掉后只在编辑视图生效，阅读视图和导出 PDF 保持原文。
-- **折叠总览**：按笔记分组列出本库所有折叠，点笔记名直接跳过去，逐条删除，也能一键清理指向已删除笔记的失效记录。
+- **折叠总览**：按笔记分组列出本库所有折叠，点笔记名直接跳过去，逐条删除，也能一键清理指向已删除笔记的失效记录。顶部有搜索框，可按标签、选项内容或笔记名过滤。
 
 总览也可以从左侧栏的列表图标，或命令面板「打开折叠总览」打开。
 
