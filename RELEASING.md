@@ -47,7 +47,7 @@ Obsidian 按 tag 名找对应版本的 manifest，`v3.0.0` 会被当成找不到
 ## 4. 建 GitHub Release
 
 ```bash
-gh release create <version> --title "代码块参数折叠 <version>" --notes-file RELEASE_NOTES.md \
+gh release create <version> --title "Code Block Parameter Fold <version>" --notes-file RELEASE_NOTES.md \
   manifest.json main.js styles.css dist/code-block-context-fold-<version>.zip
 ```
 
@@ -95,35 +95,25 @@ gh release create <version> --title "代码块参数折叠 <version>" --notes-fi
    ```json
    {
      "id": "code-block-context-fold",
-     "name": "代码块参数折叠",
-     "author": "Zonvon",
-     "description": "把代码块里的“参数[内容]”折叠成可点击的标签，也可切换成悬浮显示选项与注释的弹窗。",
-     "repo": "zhongxiaguchen/code-block-context-fold"
-   }
-   ```
-
-   想更容易被英文用户搜到，可以把 `name` 和 `description` 换成英文，例如：
-
-   ```json
-   {
-     "id": "code-block-context-fold",
      "name": "Code Block Parameter Fold",
      "author": "Zonvon",
-     "description": "Fold `name[options]` inside code blocks into a clickable tag, with an optional hover popup showing options and comments.",
+     "description": "Fold name[options] inside code blocks into a clickable tag, with an optional hover popup showing options and comments.",
      "repo": "zhongxiaguchen/code-block-context-fold"
    }
    ```
+
+   `name` 和 `description` 必须与 `manifest.json` 保持一致，否则审核会打回。
 
    注意：`id` 一旦上架就**不要改**——它是插件目录名，改了等同于换一个插件。
 
-3. 提 PR，标题 `Add plugin: 代码块参数折叠`，正文用下面这份：
+3. 提 PR，标题 `Add plugin: Code Block Parameter Fold`，正文用下面这份：
 
    ```markdown
    ## Plugin submission
 
    - **Plugin ID:** `code-block-context-fold`
    - **Repo:** https://github.com/zhongxiaguchen/code-block-context-fold
-   - **Latest release:** v3.3.0 (tag `3.3.0`, assets: main.js, manifest.json, styles.css)
+   - **Latest release:** v3.4.1 (tag `3.4.1`, assets: main.js, manifest.json, styles.css)
 
    ### What it does
    Folds `name[options]` patterns inside code blocks into a clickable tag.

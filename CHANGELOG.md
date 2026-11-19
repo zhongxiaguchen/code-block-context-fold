@@ -2,6 +2,13 @@
 
 本项目使用 [语义化版本](https://semver.org/lang/zh-CN/)，版本号与 `manifest.json` 保持一致。
 
+## 3.4.1
+
+- 显示名改为 **Code Block Parameter Fold**，`description` 改为英文。
+  这是上架社区列表前的收口：`manifest.json` 无法按语言本地化，而插件列表是英文用户在浏览。
+- `id` 保持不变（`code-block-context-fold`），已装实例和折叠记录不受影响；
+  中文界面的文案也不变，只是设置页和插件列表里的名字变成英文。
+
 ## 3.4.0
 
 - 界面文案支持中文和英文：跟随 Obsidian 的语言设置，其他语言回退英文。

@@ -8,7 +8,7 @@ details, or switch to a hover popup that lists every option together with its co
 It is built for anything shaped like *a name plus a long list of accepted values*: shader properties,
 engine settings, CLI flags, enum values — as long as you can write it as `name[content]`.
 
-Repository: <https://github.com/zhongxiaguchen/code-block-context-fold>　·　Latest: 3.4.0
+Repository: <https://github.com/zhongxiaguchen/code-block-context-fold>　·　Latest: 3.4.1
 
 ![two display modes](docs/display-modes.svg)
 
@@ -29,7 +29,7 @@ Repository: <https://github.com/zhongxiaguchen/code-block-context-fold>　·　L
 
 1. Download `manifest.json`, `main.js` and `styles.css` from
    [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases)
-   (or grab `code-block-context-fold-3.4.0.zip` and unzip it).
+   (or grab `code-block-context-fold-3.4.1.zip` and unzip it).
 2. Create the folder `<your vault>/.obsidian/plugins/code-block-context-fold/`.
 3. Put the three files directly inside it — do not nest them in another folder.
 4. Obsidian → Settings → Community plugins → turn off Safe mode → reload → enable the plugin.

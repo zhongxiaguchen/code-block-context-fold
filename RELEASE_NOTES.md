@@ -1,9 +1,9 @@
 Fold `name[options]` inside code blocks into a clickable tag — expand it when you need the details, or switch to a hover popup that lists every option with its comment.
 
-## 3.4.0 新增
+## 3.4.1 变更
 
-- **界面中英双语**：跟随 Obsidian 的语言设置，英文界面下菜单、命令、通知、设置页和总览全部是英文；其他语言回退英文。
-- 报错文案也随语言变化，同时保留了稳定的错误码，脚本和自动化判断不受影响。
+- 插件显示名改为 **Code Block Parameter Fold**，`description` 改为英文，为提交社区列表做准备。
+- `id`（`code-block-context-fold`）保持不变，已装实例、设置和折叠记录都不受影响；界面文案仍跟随 Obsidian 的语言。
 
 ## 两种显示方式
 
@@ -34,9 +34,9 @@ Fold `name[options]` inside code blocks into a clickable tag — expand it when 
 
 ## 安装
 
-1. 下载 `manifest.json`、`main.js`、`styles.css`（或 `code-block-context-fold-3.4.0.zip` 解压）。
+1. 下载 `manifest.json`、`main.js`、`styles.css`（或 `code-block-context-fold-3.4.1.zip` 解压）。
 2. 放到 `<你的库>/.obsidian/plugins/code-block-context-fold/`，三个文件平铺，不要多套一层文件夹。
-3. 设置 → 第三方插件 → 关闭安全模式 → 刷新 → 启用「代码块参数折叠」。
+3. 设置 → 第三方插件 → 关闭安全模式 → 刷新 → 启用 **Code Block Parameter Fold**。
 
 插件不绑定任何库，每个库各自保存自己的折叠记录。
 

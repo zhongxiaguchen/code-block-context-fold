@@ -1,7 +1,7 @@
 {
   "name": "code-block-context-fold",
-  "version": "3.4.0",
-  "description": "把代码块里的“参数[内容]”折叠成可点击的标签或选项悬浮弹窗。",
+  "version": "3.4.1",
+  "description": "Fold name[options] inside code blocks into a clickable tag, or show options and comments in a hover popup.",
   "private": true,
   "license": "GPL-3.0-or-later",
   "author": "Zonvon",

@@ -8,7 +8,9 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.4.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.4.1
+
+> 3.4.1 起插件显示名改为英文 **Code Block Parameter Fold**（`manifest.json` 无法按语言本地化，而社区列表由英文用户浏览）。界面文案仍然跟随 Obsidian 的语言设置，中文环境下全是中文。
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -28,10 +30,10 @@
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.4.0.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.4.1.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
-4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
+4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「Code Block Parameter Fold」。
 
 插件不绑定任何库：每个库各自保存自己的折叠记录，互不影响。
 
@@ -90,7 +92,7 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 ## 设置与总览
 
-设置 → 第三方插件 → 代码块参数折叠：
+设置 → 第三方插件 → Code Block Parameter Fold：
 
 - **默认显示方式**：新折叠用普通折叠还是选项悬浮弹窗；已存在的项目可以在标签上右键单独切换。
 - **阅读视图也折叠**：关掉后只在编辑视图生效，阅读视图和导出 PDF 保持原文。
