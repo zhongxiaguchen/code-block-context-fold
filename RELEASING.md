@@ -113,7 +113,7 @@ gh release create <version> --title "Code Block Parameter Fold <version>" --note
 
    - **Plugin ID:** `code-block-context-fold`
    - **Repo:** https://github.com/zhongxiaguchen/code-block-context-fold
-   - **Latest release:** v3.4.1 (tag `3.4.1`, assets: main.js, manifest.json, styles.css)
+   - **Latest release:** v<version> (tag `<version>`, assets: main.js, manifest.json, styles.css)
 
    ### What it does
    Folds `name[options]` patterns inside code blocks into a clickable tag.
