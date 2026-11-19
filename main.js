@@ -1,0 +1,1403 @@
+/* 由 scripts/build.mjs 生成，请勿直接编辑；源码在 src/ */
+"use strict";
+const __modules = Object.create(null);
+const __cache = Object.create(null);
+function __require(id) {
+	if (__cache[id]) return __cache[id].exports;
+	const module = { exports: {} };
+	__cache[id] = module;
+	__modules[id](module, module.exports, __require);
+	return module.exports;
+}
+__modules["./src/format/parameters.js"] = function (module, exports, __require) {
+/**
+ * 参数表达式的解析与序列化。
+ *
+ * 存储格式：`参数名[ 值//注释 _ 值//注释 ]`
+ * - `_` 分隔选项
+ * - `//` 之后到选项结束为注释
+ * - 名称、值、注释都不允许出现方括号与下划线，避免解析歧义
+ */
+
+function parseParameterOptions(expression) {
+	const bracketFrom = expression.indexOf("[");
+	if (bracketFrom < 0 || !expression.endsWith("]")) return [];
+	const content = expression.slice(bracketFrom + 1, -1);
+	return content
+		.split("_")
+		.map((part) => {
+			const trimmed = part.trim();
+			if (!trimmed) return null;
+			const commentFrom = trimmed.indexOf("//");
+			return {
+				value: (commentFrom >= 0 ? trimmed.slice(0, commentFrom) : trimmed).trim(),
+				comment: (commentFrom >= 0 ? trimmed.slice(commentFrom + 2) : "").trim(),
+			};
+		})
+		.filter((option) => option?.value);
+}
+
+function serializeParameterOptions(label, options) {
+	label = label.trim();
+	if (!label || /[\r\n\[\]_]/.test(label) || label.includes("//")) {
+		throw new Error("请填写参数名称，名称不能包含换行、方括号、下划线或 //");
+	}
+	if (!options.length) throw new Error("请至少添加一个选项");
+	const parts = options.map((option) => {
+		const value = option.value.trim();
+		const comment = option.comment.trim();
+		if (!value) throw new Error("每个选项都需要填写名称");
+		if (/[\r\n\[\]_]/.test(value) || value.includes("//") || /[\[\]_]/.test(comment)) {
+			throw new Error("选项不能包含换行、方括号、下划线或 //；注释不能包含方括号或下划线");
+		}
+		return "  " + value + (comment ? "//" + comment : "");
+	});
+	return label + "[\n" + parts.join("_\n") + "\n]";
+}
+
+module.exports = { parseParameterOptions, serializeParameterOptions };
+};
+__modules["./src/ui/options-widget.js"] = function (module, exports, __require) {
+const { WidgetType } = require("@codemirror/view");
+const { parseParameterOptions } = __require("./src/format/parameters.js");
+
+/**
+ * 「选项悬浮弹窗」显示方式用的内联组件：
+ * 折叠状态渲染成 `参数名 ▾` 药丸，悬停浮出选项列表，选项悬停浮出注释。
+ */
+class ParameterOptionsWidget extends WidgetType {
+	constructor(region) {
+		super();
+		this.region = region;
+		this.options = parseParameterOptions(region.expression);
+	}
+
+	eq(other) {
+		return (
+			this.region.id === other.region.id &&
+			this.region.label === other.region.label &&
+			this.region.expression === other.region.expression
+		);
+	}
+
+	toDOM() {
+		const root = document.createElement("span");
+		root.className = "inline-code-fold-options";
+
+		const label = document.createElement("span");
+		label.className = "inline-code-fold-label inline-code-fold-label--options";
+		label.setAttribute("data-inline-code-fold-id", this.region.id);
+		label.setAttribute("tabindex", "0");
+		label.setAttribute("aria-label", `${this.region.label}：悬浮查看选项，右键展开原文`);
+		label.textContent = `${this.region.label} ▾`;
+		root.appendChild(label);
+
+		const panel = document.createElement("span");
+		panel.className = "inline-code-fold-options-panel";
+		panel.setAttribute("role", "list");
+
+		for (const option of this.options) {
+			const row = document.createElement("span");
+			row.className = "inline-code-fold-option";
+			row.setAttribute("role", "listitem");
+			row.setAttribute("tabindex", "0");
+
+			const value = document.createElement("span");
+			value.className = "inline-code-fold-option-value";
+			value.textContent = option.value;
+			row.appendChild(value);
+
+			const comment = document.createElement("span");
+			comment.className = "inline-code-fold-option-comment";
+			comment.textContent = option.comment || "暂无注释";
+			row.appendChild(comment);
+			panel.appendChild(row);
+		}
+
+		let closeTimer = null;
+		const cancelClose = () => window.clearTimeout(closeTimer);
+		const close = () => {
+			cancelClose();
+			panel.remove();
+		};
+		const scheduleClose = () => {
+			cancelClose();
+			closeTimer = window.setTimeout(close, 180);
+		};
+		const open = () => {
+			cancelClose();
+			if (!panel.isConnected) document.body.appendChild(panel);
+			const rect = label.getBoundingClientRect();
+			const panelRect = panel.getBoundingClientRect();
+			panel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panelRect.width - 8))}px`;
+			panel.style.top = `${Math.max(8, rect.bottom + panelRect.height + 8 > window.innerHeight ? rect.top - panelRect.height - 6 : rect.bottom + 6)}px`;
+		};
+		root.addEventListener("mouseenter", open);
+		root.addEventListener("mouseleave", scheduleClose);
+		root.addEventListener("focusin", open);
+		root.addEventListener("focusout", scheduleClose);
+		panel.addEventListener("mouseenter", cancelClose);
+		panel.addEventListener("mouseleave", scheduleClose);
+		panel.addEventListener("focusin", cancelClose);
+		panel.addEventListener("focusout", scheduleClose);
+		const onKeyDown = (event) => {
+			if (event.key === "Escape") close();
+		};
+		root.addEventListener("keydown", onKeyDown);
+		panel.addEventListener("keydown", onKeyDown);
+		for (const row of panel.children) {
+			const positionComment = () => {
+				const comment = row.querySelector(".inline-code-fold-option-comment");
+				const rowRect = row.getBoundingClientRect();
+				const commentRect = comment.getBoundingClientRect();
+				const left = rowRect.right + 10 + commentRect.width <= window.innerWidth - 8
+					? rowRect.right + 10
+					: Math.max(8, rowRect.left - commentRect.width - 10);
+				comment.style.left = `${left}px`;
+				comment.style.top = `${Math.max(8, Math.min(rowRect.top, window.innerHeight - commentRect.height - 8))}px`;
+			};
+			row.addEventListener("mouseenter", positionComment);
+			row.addEventListener("focus", positionComment);
+		}
+		window.addEventListener("resize", close);
+		const onScroll = (event) => {
+			if (!panel.contains(event.target)) close();
+		};
+		window.addEventListener("scroll", onScroll, true);
+		root.cleanupOptionsPopup = () => {
+			close();
+			window.removeEventListener("resize", close);
+			window.removeEventListener("scroll", onScroll, true);
+		};
+		return root;
+	}
+
+	destroy(dom) {
+		dom.cleanupOptionsPopup?.();
+	}
+
+	ignoreEvent() {
+		return false;
+	}
+}
+
+module.exports = { ParameterOptionsWidget };
+};
+__modules["./src/state.js"] = function (module, exports, __require) {
+/**
+ * 跨模块共享的插件级状态。
+ *
+ * CodeMirror 的装饰与事件处理不持有插件实例，因此通过这里访问当前插件。
+ * 单独成模块是为了避免 editor/ 与 main 之间形成循环依赖。
+ */
+
+let activePlugin = null;
+let contextRegionId = null;
+
+function setActivePlugin(plugin) {
+	activePlugin = plugin;
+}
+
+function getActivePlugin() {
+	return activePlugin;
+}
+
+function setContextRegionId(regionId) {
+	contextRegionId = regionId;
+}
+
+function getContextRegionId() {
+	return contextRegionId;
+}
+
+module.exports = {
+	setActivePlugin,
+	getActivePlugin,
+	setContextRegionId,
+	getContextRegionId,
+};
+};
+__modules["./src/editor/decorations.js"] = function (module, exports, __require) {
+const { StateEffect, StateField } = require("@codemirror/state");
+const { Decoration, EditorView } = require("@codemirror/view");
+const { parseParameterOptions } = __require("./src/format/parameters.js");
+const { ParameterOptionsWidget } = __require("./src/ui/options-widget.js");
+const { getActivePlugin, setContextRegionId, getContextRegionId } = __require("./src/state.js");
+
+/**
+ * CodeMirror 侧的折叠状态：一份 region 列表 + 展开集合，派生出装饰。
+ * region 的偏移量随文档变更自动 map，越界或坍缩的自动丢弃。
+ */
+
+const addRegionEffect = StateEffect.define({
+	map: (region, changes) => ({
+		...region,
+		labelFrom: changes.mapPos(region.labelFrom, 1),
+		labelTo: changes.mapPos(region.labelTo, -1),
+		bracketFrom: changes.mapPos(region.bracketFrom, 1),
+		bracketTo: changes.mapPos(region.bracketTo, -1),
+	}),
+});
+
+const toggleRegionEffect = StateEffect.define();
+const removeRegionEffect = StateEffect.define();
+const restoreRegionsEffect = StateEffect.define();
+const setRegionDisplayModeEffect = StateEffect.define();
+
+function createDecorations(regions, expandedRegionIds) {
+	const ranges = [];
+
+	for (const region of regions) {
+		if (region.labelTo <= region.labelFrom || region.bracketTo <= region.bracketFrom) {
+			continue;
+		}
+
+		const expanded = expandedRegionIds.has(region.id);
+		const options = parseParameterOptions(region.expression);
+		if (region.displayMode === "options" && !expanded && options.length) {
+			ranges.push(
+				Decoration.replace({
+					inclusive: false,
+					widget: new ParameterOptionsWidget(region),
+				}).range(
+					region.labelFrom,
+					region.bracketTo,
+				),
+			);
+			continue;
+		}
+
+		ranges.push(
+			Decoration.mark({
+				class: "inline-code-fold-label",
+				attributes: {
+					"data-inline-code-fold-id": region.id,
+					title: `${region.label}：点击展开或收起`,
+				},
+			}).range(region.labelFrom, region.labelTo),
+		);
+
+		if (!expanded) {
+			ranges.push(
+				Decoration.replace({ inclusive: false }).range(region.bracketFrom, region.bracketTo),
+			);
+		}
+	}
+
+	return Decoration.set(ranges, true);
+}
+
+const parameterFoldField = StateField.define({
+	create: () => ({
+		regions: [],
+		expanded: new Set(),
+		decorations: Decoration.none,
+	}),
+	update: (value, transaction) => {
+		let regions = value.regions;
+		const expanded = new Set(value.expanded);
+		let changed = transaction.docChanged;
+
+		if (transaction.docChanged) {
+			regions = regions
+				.map((region) => ({
+					...region,
+					labelFrom: transaction.changes.mapPos(region.labelFrom, 1),
+					labelTo: transaction.changes.mapPos(region.labelTo, -1),
+					bracketFrom: transaction.changes.mapPos(region.bracketFrom, 1),
+					bracketTo: transaction.changes.mapPos(region.bracketTo, -1),
+				}))
+				.filter(
+					(region) =>
+						region.labelTo > region.labelFrom &&
+						region.bracketTo > region.bracketFrom,
+				);
+		}
+
+		for (const effect of transaction.effects) {
+			if (effect.is(restoreRegionsEffect)) {
+				regions = effect.value.regions;
+				expanded.clear();
+				for (const regionId of effect.value.expandedIds) expanded.add(regionId);
+				changed = true;
+				continue;
+			}
+
+			if (effect.is(addRegionEffect)) {
+				regions = [
+					...regions.filter((region) => region.id !== effect.value.id),
+					effect.value,
+				];
+				changed = true;
+				continue;
+			}
+
+			if (effect.is(toggleRegionEffect)) {
+				const regionId = effect.value;
+				if (expanded.has(regionId)) expanded.delete(regionId);
+				else expanded.add(regionId);
+				changed = true;
+				continue;
+			}
+
+			if (effect.is(removeRegionEffect)) {
+				const regionId = effect.value;
+				regions = regions.filter((region) => region.id !== regionId);
+				expanded.delete(regionId);
+				changed = true;
+				continue;
+			}
+
+			if (effect.is(setRegionDisplayModeEffect)) {
+				regions = regions.map((region) =>
+					region.id === effect.value.regionId
+						? { ...region, displayMode: effect.value.displayMode }
+						: region,
+				);
+				changed = true;
+			}
+		}
+
+		if (!changed) return value;
+		return {
+			regions,
+			expanded,
+			decorations: createDecorations(regions, expanded),
+		};
+	},
+	provide: (field) =>
+		EditorView.decorations.compute([field], (state) =>
+			state.field(field).decorations,
+		),
+});
+
+/**
+ * 标签上的鼠标交互：右键出菜单，左键点按展开/收起。
+ * 为了让点击落在标签上而不是移动光标，mousedown 阶段就阻止默认行为。
+ */
+const labelClickHandler = EditorView.domEventHandlers({
+	contextmenu: (event, view) => {
+		const target = event.target;
+		if (!(target instanceof Element)) return false;
+		const label = target.closest(".inline-code-fold-label");
+		setContextRegionId(label?.getAttribute("data-inline-code-fold-id") || null);
+		const regionId = getContextRegionId();
+		const plugin = getActivePlugin();
+		if (regionId && plugin) {
+			event.preventDefault();
+			plugin.showRegionMenu(event, view, regionId);
+			setContextRegionId(null);
+			return true;
+		}
+		return false;
+	},
+	mousedown: (event) => {
+		const target = event.target;
+		if (!(target instanceof Element)) return false;
+		if (!target.closest(".inline-code-fold-label")) return false;
+		if (event.button !== 0) return false;
+		event.preventDefault();
+		return true;
+	},
+	click: (event, view) => {
+		const target = event.target;
+		if (!(target instanceof Element)) return false;
+		const label = target.closest(".inline-code-fold-label");
+		if (!label) return false;
+
+		const regionId = label.getAttribute("data-inline-code-fold-id");
+		if (!regionId) return false;
+		const field = view.state.field(parameterFoldField, false);
+		const region = field?.regions.find((item) => item.id === regionId);
+		if (!region) return false;
+		if (region.displayMode === "options" && !field.expanded.has(regionId)) {
+			event.preventDefault();
+			return true;
+		}
+		const willExpand = !field?.expanded.has(regionId);
+		event.preventDefault();
+		view.dispatch({ effects: toggleRegionEffect.of(regionId) });
+		getActivePlugin()?.setRegionExpanded(region.filePath, regionId, willExpand);
+		return true;
+	},
+});
+
+module.exports = {
+	addRegionEffect,
+	toggleRegionEffect,
+	removeRegionEffect,
+	restoreRegionsEffect,
+	setRegionDisplayModeEffect,
+	createDecorations,
+	parameterFoldField,
+	labelClickHandler,
+};
+};
+__modules["./src/editor/blocks.js"] = function (module, exports, __require) {
+/**
+ * 代码围栏（``` / ~~~）的扫描。所有位置都基于编辑器偏移量。
+ */
+
+function listCodeBlocks(editor) {
+	const blocks = [];
+	let opening = null;
+
+	for (let lineNumber = 0; lineNumber < editor.lineCount(); lineNumber += 1) {
+		const line = editor.getLine(lineNumber);
+		if (!opening) {
+			const match = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+			if (!match) continue;
+			opening = {
+				openingLine: lineNumber,
+				character: match[1][0],
+				length: match[1].length,
+				language: match[2].trim().split(/\s+/, 1)[0] || "",
+			};
+			continue;
+		}
+
+		const trimmed = line.trimStart();
+		let count = 0;
+		while (trimmed[count] === opening.character) count += 1;
+		const closes = count >= opening.length && trimmed.slice(count).trim().length === 0;
+		if (!closes) continue;
+
+		blocks.push({
+			...opening,
+			index: blocks.length,
+			closingLine: lineNumber,
+			contentFrom: editor.posToOffset({ line: opening.openingLine + 1, ch: 0 }),
+			contentTo: editor.posToOffset({ line: lineNumber, ch: 0 }),
+		});
+		opening = null;
+	}
+
+	if (opening) {
+		const contentLine = opening.openingLine + 1;
+		blocks.push({
+			...opening,
+			index: blocks.length,
+			closingLine: editor.lineCount(),
+			contentFrom:
+				contentLine < editor.lineCount()
+					? editor.posToOffset({ line: contentLine, ch: 0 })
+					: editor.getValue().length,
+			contentTo: editor.getValue().length,
+		});
+	}
+
+	return blocks;
+}
+
+function findBlockForRange(blocks, from, to) {
+	return blocks.find((block) => from >= block.contentFrom && to <= block.contentTo) || null;
+}
+
+function findContainingCodeBlock(editor, fromLine, toLine) {
+	let opening = null;
+
+	for (let lineNumber = 0; lineNumber < editor.lineCount(); lineNumber += 1) {
+		const line = editor.getLine(lineNumber);
+
+		if (!opening) {
+			const match = line.match(/^ {0,3}(`{3,}|~{3,})/);
+			if (match) {
+				opening = {
+					line: lineNumber,
+					character: match[1][0],
+					length: match[1].length,
+				};
+			}
+			continue;
+		}
+
+		const text = line.trimStart();
+		let count = 0;
+		while (text[count] === opening.character) count += 1;
+		const closes = count >= opening.length && text.slice(count).trim().length === 0;
+		if (!closes) continue;
+
+		if (opening.line < fromLine && lineNumber > toLine) return opening;
+		opening = null;
+	}
+
+	return opening && opening.line < fromLine ? opening : null;
+}
+
+module.exports = { listCodeBlocks, findBlockForRange, findContainingCodeBlock };
+};
+__modules["./src/editor/selection.js"] = function (module, exports, __require) {
+const { findContainingCodeBlock } = __require("./src/editor/blocks.js");
+
+/**
+ * 把「用户选中的一段 参数[内容]」解析成可装饰的区间。
+ * 只有完全位于同一个代码块内、且方括号配平的选区才会被接受。
+ */
+function parseSelectedParameter(editor) {
+	if (!editor.somethingSelected()) return null;
+
+	const selectionFrom = editor.getCursor("from");
+	const selectionTo = editor.getCursor("to");
+	if (!findContainingCodeBlock(editor, selectionFrom.line, selectionTo.line)) return null;
+
+	const selectedText = editor.getSelection();
+
+	const leadingWhitespace = selectedText.length - selectedText.trimStart().length;
+	const expression = selectedText.trim();
+	const bracketFromInExpression = expression.indexOf("[");
+	if (bracketFromInExpression <= 0) return null;
+
+	let depth = 0;
+	let bracketToInExpression = -1;
+	for (let index = bracketFromInExpression; index < expression.length; index += 1) {
+		if (expression[index] === "[") depth += 1;
+		if (expression[index] === "]") depth -= 1;
+		if (depth === 0) {
+			bracketToInExpression = index + 1;
+			break;
+		}
+	}
+
+	if (depth !== 0 || bracketToInExpression !== expression.length) return null;
+	const label = expression.slice(0, bracketFromInExpression).trimEnd();
+	if (!label || /[\r\n]/.test(label)) return null;
+
+	const selectionOffset = editor.posToOffset(selectionFrom) + leadingWhitespace;
+	const labelFrom = selectionOffset;
+	const labelTo = selectionOffset + label.length;
+	const bracketFrom = selectionOffset + bracketFromInExpression;
+	const bracketTo = selectionOffset + expression.length;
+
+	return {
+		label,
+		expression,
+		labelFrom,
+		labelTo,
+		bracketFrom,
+		bracketTo,
+	};
+}
+
+module.exports = { parseSelectedParameter };
+};
+__modules["./src/util/text.js"] = function (module, exports, __require) {
+/**
+ * 折叠位置锚点用到的文本归一化与相似度工具。
+ */
+
+function normalizeContext(text) {
+	return text.replace(/\s+/g, " ").trim();
+}
+
+function commonPrefixLength(left, right) {
+	const limit = Math.min(left.length, right.length);
+	let length = 0;
+	while (length < limit && left[length] === right[length]) length += 1;
+	return length;
+}
+
+function commonSuffixLength(left, right) {
+	const limit = Math.min(left.length, right.length);
+	let length = 0;
+	while (
+		length < limit &&
+		left[left.length - 1 - length] === right[right.length - 1 - length]
+	) {
+		length += 1;
+	}
+	return length;
+}
+
+module.exports = { normalizeContext, commonPrefixLength, commonSuffixLength };
+};
+__modules["./src/editor/anchor.js"] = function (module, exports, __require) {
+const { listCodeBlocks, findBlockForRange } = __require("./src/editor/blocks.js");
+const { normalizeContext } = __require("./src/util/text.js");
+
+const ANCHOR_CONTEXT_LENGTH = 64;
+
+function hasUsefulAnchor(anchor) {
+	return Boolean(
+		anchor &&
+			(anchor.language ||
+				(Number.isInteger(anchor.blockIndex) && anchor.blockIndex >= 0) ||
+				Number.isInteger(anchor.lineHint) ||
+				anchor.prefix ||
+				anchor.suffix),
+	);
+}
+
+/**
+ * 记录一个折叠位置周围的稳定特征，供下次打开笔记时重新定位。
+ */
+function buildAnchor(editor, region, blocks = listCodeBlocks(editor)) {
+	const text = editor.getValue();
+	const block = findBlockForRange(blocks, region.labelFrom, region.bracketTo);
+	const lineHint = editor.offsetToPos(region.labelFrom).line;
+	const lowerBound = block?.contentFrom ?? 0;
+	const upperBound = block?.contentTo ?? text.length;
+	return {
+		label: region.label,
+		language: block?.language || "",
+		blockIndex: block?.index ?? -1,
+		lineHint,
+		prefix: normalizeContext(
+			text.slice(Math.max(lowerBound, region.labelFrom - ANCHOR_CONTEXT_LENGTH), region.labelFrom),
+		),
+		suffix: normalizeContext(
+			text.slice(region.bracketTo, Math.min(upperBound, region.bracketTo + ANCHOR_CONTEXT_LENGTH)),
+		),
+	};
+}
+
+module.exports = { ANCHOR_CONTEXT_LENGTH, hasUsefulAnchor, buildAnchor };
+};
+__modules["./src/editor/recover.js"] = function (module, exports, __require) {
+const { findBlockForRange } = __require("./src/editor/blocks.js");
+const { ANCHOR_CONTEXT_LENGTH, hasUsefulAnchor } = __require("./src/editor/anchor.js");
+const {
+	normalizeContext,
+	commonPrefixLength,
+	commonSuffixLength,
+} = __require("./src/util/text.js");
+
+/**
+ * 在笔记被改动之后，为一条历史记录重新找到对应的文本位置。
+ *
+ * 策略：先按完整表达式精确匹配；找不到时退化为「标签 + 配平方括号」，
+ * 再用锚点打分。命中多个候选且分差不够大时宁可放弃，也不猜。
+ */
+
+function findBalancedExpressionEnd(text, bracketFrom, limit) {
+	let depth = 0;
+	for (let index = bracketFrom; index < limit; index += 1) {
+		if (text[index] === "[") depth += 1;
+		if (text[index] === "]") depth -= 1;
+		if (depth === 0) return index + 1;
+	}
+	return -1;
+}
+
+function collectRecordCandidates(editor, record, blocks) {
+	const text = editor.getValue();
+	const exact = [];
+	let searchFrom = 0;
+	while (record.expression && searchFrom <= text.length) {
+		const position = text.indexOf(record.expression, searchFrom);
+		if (position < 0) break;
+		const block = findBlockForRange(blocks, position, position + record.expression.length);
+		if (block) {
+			exact.push({
+				position,
+				expression: record.expression,
+				label: record.anchor?.label || record.expression.slice(0, record.expression.indexOf("[")).trimEnd(),
+				block,
+				exact: true,
+			});
+		}
+		searchFrom = position + Math.max(record.expression.length, 1);
+	}
+
+	if (exact.length) return exact;
+
+	const label = record.anchor?.label || record.expression?.slice(0, record.expression.indexOf("[")).trimEnd();
+	if (!label) return [];
+	const token = `${label}[`;
+	const fallback = [];
+	for (const block of blocks) {
+		let position = text.indexOf(token, block.contentFrom);
+		while (position >= 0 && position < block.contentTo) {
+			const bracketFrom = position + label.length;
+			const end = findBalancedExpressionEnd(text, bracketFrom, block.contentTo);
+			if (end > bracketFrom) {
+				fallback.push({
+					position,
+					expression: text.slice(position, end),
+					label,
+					block,
+					exact: false,
+				});
+			}
+			position = text.indexOf(token, Math.max(position + token.length, end));
+		}
+	}
+	return fallback;
+}
+
+function scoreCandidate(editor, record, candidate) {
+	let score = candidate.exact ? 100 : 0;
+	const anchor = record.anchor || {};
+	const text = editor.getValue();
+	const line = editor.offsetToPos(candidate.position).line;
+
+	if (anchor.language && anchor.language === candidate.block.language) score += 18;
+	if (Number.isInteger(anchor.blockIndex) && anchor.blockIndex === candidate.block.index) score += 12;
+	if (Number.isInteger(anchor.lineHint)) {
+		score += Math.max(0, 18 - Math.min(18, Math.abs(anchor.lineHint - line)));
+	}
+
+	const prefix = normalizeContext(
+		text.slice(
+			Math.max(candidate.block.contentFrom, candidate.position - ANCHOR_CONTEXT_LENGTH),
+			candidate.position,
+		),
+	);
+	const suffix = normalizeContext(
+		text.slice(
+			candidate.position + candidate.expression.length,
+			Math.min(
+				candidate.block.contentTo,
+				candidate.position + candidate.expression.length + ANCHOR_CONTEXT_LENGTH,
+			),
+		),
+	);
+	if (anchor.prefix) {
+		score += (commonSuffixLength(anchor.prefix, prefix) / Math.max(anchor.prefix.length, 1)) * 25;
+	}
+	if (anchor.suffix) {
+		score += (commonPrefixLength(anchor.suffix, suffix) / Math.max(anchor.suffix.length, 1)) * 25;
+	}
+	return score;
+}
+
+function selectRecordCandidate(editor, record, blocks) {
+	const candidates = collectRecordCandidates(editor, record, blocks);
+	if (!candidates.length) return null;
+	const ranked = candidates
+		.map((candidate) => ({ candidate, score: scoreCandidate(editor, record, candidate) }))
+		.sort((left, right) => right.score - left.score);
+
+	if (ranked.length === 1) {
+		if (!ranked[0].candidate.exact && ranked[0].score < 28) return null;
+		return ranked[0].candidate;
+	}
+
+	const margin = ranked[0].score - ranked[1].score;
+	if (ranked[0].candidate.exact && !hasUsefulAnchor(record.anchor)) {
+		return candidates[record.occurrence] || ranked[0].candidate;
+	}
+	if (margin < 8) return null;
+	if (!ranked[0].candidate.exact && ranked[0].score < 40) return null;
+	return ranked[0].candidate;
+}
+
+module.exports = {
+	findBalancedExpressionEnd,
+	collectRecordCandidates,
+	scoreCandidate,
+	selectRecordCandidate,
+};
+};
+__modules["./src/util/id.js"] = function (module, exports, __require) {
+function createRegionId() {
+	const uuid = globalThis.crypto?.randomUUID?.();
+	if (uuid) return `parameter-fold-${uuid}`;
+	return `parameter-fold-${Date.now().toString(36)}-${Math.random()
+		.toString(36)
+		.slice(2, 12)}`;
+}
+
+module.exports = { createRegionId };
+};
+__modules["./src/ui/setup-modal.js"] = function (module, exports, __require) {
+const { Modal, Notice } = require("obsidian");
+const { parseParameterOptions, serializeParameterOptions } = __require("./src/format/parameters.js");
+
+/**
+ * 参数选项编辑器：名称 + 若干「选项 / 注释」行，保存时序列化成折叠表达式。
+ */
+class ParameterSetupModal extends Modal {
+	constructor(app, initial, onSave) {
+		super(app);
+		this.initial = initial;
+		this.onSave = onSave;
+	}
+
+	onOpen() {
+		const content = this.contentEl;
+		content.replaceChildren();
+		content.classList.add("parameter-setup");
+		const append = (parent, tag, text, className) => {
+			const element = document.createElement(tag);
+			if (text) element.textContent = text;
+			if (className) element.className = className;
+			parent.appendChild(element);
+			return element;
+		};
+		append(content, "h2", this.initial ? "编辑参数选项" : "插入参数选项");
+		append(content, "p", "1. 设置参数名称 → 2. 添加选项和注释 → 3. 保存为悬浮弹窗。分隔符会自动生成。");
+		const nameLabel = append(content, "label", "参数名称");
+		const name = append(nameLabel, "input");
+		name.type = "text";
+		name.placeholder = "例如：混合模式";
+		name.value = this.initial?.label || "";
+		append(content, "h3", "选项与注释");
+		const list = append(content, "div");
+		const rows = [];
+		const addRow = (option = { value: "", comment: "" }) => {
+			const row = append(list, "div", "", "parameter-setup-row");
+			const valueLabel = append(row, "label", "选项名称");
+			const value = append(valueLabel, "input");
+			value.type = "text";
+			value.placeholder = "例如：Normal";
+			value.value = option.value;
+			const commentLabel = append(row, "label", "注释（可选，支持换行）");
+			const comment = append(commentLabel, "textarea");
+			comment.rows = 2;
+			comment.value = option.comment;
+			const remove = append(row, "button", "删除此选项");
+			remove.type = "button";
+			const entry = { row, value, comment };
+			rows.push(entry);
+			remove.addEventListener("click", () => {
+				rows.splice(rows.indexOf(entry), 1);
+				row.remove();
+			});
+		};
+		const options = this.initial ? parseParameterOptions(this.initial.expression) : [];
+		for (const option of options.length ? options : [{ value: "", comment: "" }]) addRow(option);
+		const add = append(content, "button", "+ 添加一个选项");
+		add.type = "button";
+		add.addEventListener("click", () => addRow());
+		append(content, "p", "当前格式使用 _ 分隔选项，// 开始注释。名称和注释暂不支持 _ 和方括号。");
+		const actions = append(content, "div", "", "parameter-setup-actions");
+		const cancel = append(actions, "button", "取消");
+		cancel.addEventListener("click", () => this.close());
+		const save = append(actions, "button", this.initial ? "保存修改" : "插入并折叠", "mod-cta");
+		save.addEventListener("click", async () => {
+			try {
+				const expression = serializeParameterOptions(name.value, rows.map((entry) => ({
+					value: entry.value.value, comment: entry.comment.value,
+				})));
+				save.disabled = true;
+				await this.onSave(expression, name.value.trim());
+				this.close();
+			} catch (error) {
+				new Notice(error.message || "保存失败，请重试");
+				save.disabled = false;
+			}
+		});
+		name.focus();
+	}
+
+	onClose() {
+		this.contentEl.replaceChildren();
+	}
+}
+
+module.exports = { ParameterSetupModal };
+};
+__modules["./src/plugin/actions.js"] = function (module, exports, __require) {
+const { Notice } = require("obsidian");
+const { parseSelectedParameter } = __require("./src/editor/selection.js");
+const { parameterFoldField, addRegionEffect } = __require("./src/editor/decorations.js");
+const { createRegionId } = __require("./src/util/id.js");
+const { getActivePlugin } = __require("./src/state.js");
+
+/**
+ * 把当前选区登记成一个折叠区域（不改动文本）。
+ */
+function registerSelectedParameter(editor) {
+	const parsedRegion = parseSelectedParameter(editor);
+	if (!parsedRegion) {
+		new Notice("请在同一个代码块内选中完整的“参数[内容]”，支持多行");
+		return false;
+	}
+	const plugin = getActivePlugin();
+	const filePath = plugin?.app.workspace.getActiveFile()?.path;
+	const region = {
+		...parsedRegion,
+		id: createRegionId(),
+		filePath,
+		displayMode: "standard",
+	};
+
+	const editorView = editor.cm;
+	if (!editorView) {
+		new Notice("当前编辑器不支持参数折叠");
+		return false;
+	}
+
+	editor.setCursor(editor.getCursor("from"));
+	editorView.dispatch({ effects: addRegionEffect.of(region) });
+	plugin?.saveRegion(editor, region);
+	return true;
+}
+
+function findRegisteredRegionAtCursor(editor) {
+	const editorView = editor.cm;
+	if (!editorView) return null;
+	const field = editorView.state.field(parameterFoldField, false);
+	if (!field) return null;
+
+	const offset = editor.posToOffset(editor.getCursor("head"));
+	const region = field.regions.find(
+		(item) =>
+			(offset >= item.labelFrom && offset <= item.labelTo) ||
+			(offset >= item.bracketFrom && offset <= item.bracketTo),
+	);
+	if (!region) return null;
+
+	return {
+		region,
+		expanded: field.expanded.has(region.id),
+		editorView,
+	};
+}
+
+function findRegisteredRegionById(editor, regionId) {
+	const editorView = editor.cm;
+	if (!editorView || !regionId) return null;
+	const field = editorView.state.field(parameterFoldField, false);
+	if (!field) return null;
+	const region = field.regions.find((item) => item.id === regionId);
+	if (!region) return null;
+	return {
+		region,
+		expanded: field.expanded.has(region.id),
+		editorView,
+	};
+}
+
+module.exports = {
+	registerSelectedParameter,
+	findRegisteredRegionAtCursor,
+	findRegisteredRegionById,
+};
+};
+__modules["./src/main.js"] = function (module, exports, __require) {
+const { MarkdownView, Menu, Notice, Plugin } = require("obsidian");
+
+const {
+	addRegionEffect,
+	toggleRegionEffect,
+	removeRegionEffect,
+	restoreRegionsEffect,
+	setRegionDisplayModeEffect,
+	parameterFoldField,
+	labelClickHandler,
+} = __require("./src/editor/decorations.js");
+const { listCodeBlocks, findContainingCodeBlock } = __require("./src/editor/blocks.js");
+const { parseSelectedParameter } = __require("./src/editor/selection.js");
+const { buildAnchor } = __require("./src/editor/anchor.js");
+const { selectRecordCandidate } = __require("./src/editor/recover.js");
+const { parseParameterOptions } = __require("./src/format/parameters.js");
+const { createRegionId } = __require("./src/util/id.js");
+const { ParameterSetupModal } = __require("./src/ui/setup-modal.js");
+const {
+	registerSelectedParameter,
+	findRegisteredRegionAtCursor,
+	findRegisteredRegionById,
+} = __require("./src/plugin/actions.js");
+const {
+	setActivePlugin,
+	getActivePlugin,
+	setContextRegionId,
+	getContextRegionId,
+} = __require("./src/state.js");
+
+const DATA_SCHEMA_VERSION = 3;
+
+module.exports = class CodeParameterFoldPlugin extends Plugin {
+	openParameterSetup(editor, existing = null) {
+		const file = this.app.workspace.getActiveFile();
+		if (!file || !editor?.cm) return;
+		const filePath = file.path;
+		const snapshot = editor.getValue();
+		const from = existing ? existing.labelFrom : editor.posToOffset(editor.getCursor("head"));
+		const to = existing ? existing.bracketTo : from;
+		const position = editor.offsetToPos(from);
+		const insideBlock = Boolean(findContainingCodeBlock(editor, position.line, position.line));
+		const initial = existing ? {
+			...existing,
+			label: snapshot.slice(existing.labelFrom, existing.labelTo),
+			expression: snapshot.slice(from, to),
+		} : null;
+		new ParameterSetupModal(this.app, initial, async (expression, label) => {
+			if (editor.getValue() !== snapshot || this.app.workspace.getActiveFile()?.path !== filePath) {
+				throw new Error("笔记内容或当前文件已变化，请重新右键打开设置");
+			}
+			const fence = String.fromCharCode(96).repeat(3);
+			const prefix = insideBlock ? "" : (position.ch > 0 ? "\n" : "") + fence + "text\n";
+			const suffix = insideBlock ? "" : "\n" + fence + "\n";
+			editor.replaceRange(prefix + expression + suffix, editor.offsetToPos(from), editor.offsetToPos(to));
+			const labelFrom = from + prefix.length;
+			const region = {
+				id: existing?.id || createRegionId(),
+				filePath,
+				displayMode: "options",
+				label,
+				expression,
+				labelFrom,
+				labelTo: labelFrom + label.length,
+				bracketFrom: labelFrom + expression.indexOf("["),
+				bracketTo: labelFrom + expression.length,
+			};
+			const effects = existing ? [removeRegionEffect.of(existing.id)] : [];
+			effects.push(addRegionEffect.of(region));
+			editor.cm.dispatch({ effects });
+			await this.saveRegion(editor, region);
+		}).open();
+	}
+
+	showRegionMenu(event, editorView, regionId) {
+		const field = editorView.state.field(parameterFoldField, false);
+		const region = field?.regions.find((item) => item.id === regionId);
+		if (!region) return;
+		const expanded = field.expanded.has(regionId);
+		const menu = new Menu(this.app);
+		menu.addItem((item) => item.setTitle("插入参数选项…").setIcon("plus").onClick(() => {
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (view?.editor?.cm === editorView) this.openParameterSetup(view.editor);
+		}));
+		menu.addItem((item) => item.setTitle("编辑参数选项…").setIcon("pencil").onClick(() => {
+			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (view?.editor?.cm === editorView) this.openParameterSetup(view.editor, region);
+		}));
+		menu.addItem((item) => item
+			.setTitle(expanded ? "收起参数内容" : "展开参数内容")
+			.setIcon(expanded ? "fold-vertical" : "unfold-vertical")
+			.onClick(() => {
+				editorView.dispatch({ effects: toggleRegionEffect.of(regionId) });
+				void this.setRegionExpanded(region.filePath, regionId, !expanded);
+			}));
+		for (const mode of [
+			{ value: "standard", title: "显示方式：普通折叠" },
+			{ value: "options", title: "显示方式：选项悬浮弹窗" },
+		]) {
+			menu.addItem((item) => item
+				.setTitle(`${mode.title}${region.displayMode === mode.value ? "（当前）" : ""}`)
+				.setIcon(region.displayMode === mode.value ? "check" : "list")
+				.onClick(() => {
+					if (mode.value === "options" && !parseParameterOptions(region.expression).length) {
+						new Notice("没有找到可显示的参数选项");
+						return;
+					}
+					editorView.dispatch({ effects: setRegionDisplayModeEffect.of({
+						regionId, displayMode: mode.value,
+					}) });
+					void this.setRegionDisplayMode(region.filePath, regionId, mode.value);
+				}));
+		}
+		menu.addItem((item) => item.setTitle("取消参数折叠").setIcon("x").onClick(() => {
+			editorView.dispatch({ effects: removeRegionEffect.of(regionId) });
+			void this.removeSavedRegion(region.filePath, regionId);
+		}));
+		menu.showAtMouseEvent(event);
+	}
+
+	async onload() {
+		setActivePlugin(this);
+		this.savedData = Object.assign(
+			{ schemaVersion: DATA_SCHEMA_VERSION, foldsByFile: {} },
+			(await this.loadData()) || {},
+		);
+		await this.migrateSavedData();
+		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
+		this.app.workspace.onLayoutReady(() => this.restoreActiveView());
+		this.registerEvent(
+			this.app.workspace.on("file-open", () => {
+				window.setTimeout(() => this.restoreActiveView(), 50);
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on("rename", async (file, oldPath) => {
+				const records = this.savedData.foldsByFile[oldPath];
+				if (!records) return;
+				delete this.savedData.foldsByFile[oldPath];
+				this.savedData.foldsByFile[file.path] = records;
+				await this.saveData(this.savedData);
+			}),
+		);
+
+		this.registerEvent(
+			this.app.workspace.on("editor-menu", (menu, editor) => {
+				menu.addItem((item) => item
+					.setTitle("插入参数选项…")
+					.setIcon("plus")
+					.setSection("action")
+					.onClick(() => this.openParameterSetup(editor)));
+				const registered =
+					findRegisteredRegionById(editor, getContextRegionId()) ||
+					findRegisteredRegionAtCursor(editor);
+				setContextRegionId(null);
+				if (registered) {
+					menu.addItem((item) => item
+						.setTitle("编辑参数选项…")
+						.setIcon("pencil")
+						.setSection("action")
+						.onClick(() => this.openParameterSetup(editor, registered.region)));
+					menu.addItem((item) =>
+						item
+							.setTitle(registered.expanded ? "收起参数内容" : "展开参数内容")
+							.setIcon(registered.expanded ? "fold-vertical" : "unfold-vertical")
+							.setSection("action")
+							.onClick(() => {
+								registered.editorView.dispatch({
+									effects: toggleRegionEffect.of(registered.region.id),
+								});
+								this.setRegionExpanded(
+									registered.region.filePath,
+									registered.region.id,
+									!registered.expanded,
+								);
+							}),
+					);
+					for (const mode of [
+						{ value: "standard", title: "显示方式：普通折叠" },
+						{ value: "options", title: "显示方式：选项悬浮弹窗" },
+					]) {
+						const current = registered.region.displayMode === mode.value;
+						menu.addItem((item) => {
+							item
+								.setTitle(`${mode.title}${current ? "（当前）" : ""}`)
+								.setIcon(current ? "check" : mode.value === "options" ? "list" : "minus")
+								.setSection("action");
+							if (!current) {
+								item.onClick(() => {
+									if (
+										mode.value === "options" &&
+										!parseParameterOptions(registered.region.expression).length
+									) {
+										new Notice("没有找到可显示的参数选项");
+										return;
+									}
+									registered.editorView.dispatch({
+										effects: setRegionDisplayModeEffect.of({
+											regionId: registered.region.id,
+											displayMode: mode.value,
+										}),
+									});
+									this.setRegionDisplayMode(
+										registered.region.filePath,
+										registered.region.id,
+										mode.value,
+									);
+								});
+							}
+						});
+					}
+					menu.addItem((item) =>
+						item
+							.setTitle("取消参数折叠")
+							.setIcon("x")
+							.setSection("action")
+							.onClick(() => {
+								registered.editorView.dispatch({
+									effects: removeRegionEffect.of(registered.region.id),
+								});
+								this.removeSavedRegion(
+									registered.region.filePath,
+									registered.region.id,
+								);
+							}),
+					);
+					return;
+				}
+
+				if (parseSelectedParameter(editor)) {
+					menu.addItem((item) =>
+						item
+							.setTitle("折叠选中参数")
+							.setIcon("fold-vertical")
+							.setSection("action")
+							.onClick(() => registerSelectedParameter(editor)),
+					);
+				}
+			}),
+		);
+
+		this.addCommand({
+			id: "fold-selected-parameter",
+			name: "折叠选中的参数内容",
+			editorCheckCallback: (checking, editor) => {
+				const available = Boolean(parseSelectedParameter(editor));
+				if (available && !checking) registerSelectedParameter(editor);
+				return available;
+			},
+		});
+
+		this.addCommand({
+			id: "remove-parameter-fold-at-cursor",
+			name: "取消光标处的参数折叠",
+			editorCheckCallback: (checking, editor) => {
+				const registered = findRegisteredRegionAtCursor(editor);
+				if (registered && !checking) {
+					registered.editorView.dispatch({
+						effects: removeRegionEffect.of(registered.region.id),
+					});
+					this.removeSavedRegion(
+						registered.region.filePath,
+						registered.region.id,
+					);
+				}
+				return Boolean(registered);
+			},
+		});
+	}
+
+	async migrateSavedData() {
+		let changed = this.savedData.schemaVersion !== DATA_SCHEMA_VERSION;
+		const seenIds = new Set();
+
+		for (const records of Object.values(this.savedData.foldsByFile || {})) {
+			for (const record of records) {
+				const legacyId = !record.id || /^parameter-fold-\d+$/.test(record.id);
+				if (legacyId || seenIds.has(record.id)) {
+					record.id = createRegionId();
+					changed = true;
+				}
+				seenIds.add(record.id);
+
+				if (!record.anchor) {
+					const bracketFrom = record.expression?.indexOf("[") ?? -1;
+					record.anchor = {
+						label:
+							bracketFrom > 0
+								? record.expression.slice(0, bracketFrom).trimEnd()
+								: "",
+						language: "",
+						blockIndex: -1,
+						lineHint: null,
+						prefix: "",
+						suffix: "",
+					};
+					changed = true;
+				}
+
+				if (record.displayMode !== "options" && record.displayMode !== "standard") {
+					record.displayMode = "standard";
+					changed = true;
+				}
+			}
+		}
+
+		this.savedData.schemaVersion = DATA_SCHEMA_VERSION;
+		if (changed) await this.saveData(this.savedData);
+	}
+
+	onunload() {
+		if (getActivePlugin() === this) setActivePlugin(null);
+	}
+
+	async saveRegion(editor, region) {
+		const file = this.app.workspace.getActiveFile();
+		if (!file) return;
+
+		const text = editor.getValue();
+		let occurrence = 0;
+		let position = text.indexOf(region.expression);
+		while (position >= 0 && position < region.labelFrom) {
+			occurrence += 1;
+			position = text.indexOf(region.expression, position + region.expression.length);
+		}
+
+		const records = this.savedData.foldsByFile[file.path] || [];
+		const record = {
+			id: region.id,
+			expression: region.expression,
+			occurrence,
+			expanded: false,
+			displayMode: region.displayMode || "standard",
+			anchor: buildAnchor(editor, region),
+		};
+		this.savedData.foldsByFile[file.path] = [
+			...records.filter(
+				(item) =>
+					item.id !== record.id &&
+					(item.expression !== record.expression ||
+					item.occurrence !== record.occurrence),
+			),
+			record,
+		];
+		await this.saveData(this.savedData);
+	}
+
+	async setRegionExpanded(filePath, regionId, expanded) {
+		if (!filePath) return;
+		const records = this.savedData.foldsByFile[filePath] || [];
+		const record = records.find((item) => item.id === regionId);
+		if (!record) return;
+		record.expanded = expanded;
+		await this.saveData(this.savedData);
+	}
+
+	async setRegionDisplayMode(filePath, regionId, displayMode) {
+		if (!filePath) return;
+		if (displayMode !== "standard" && displayMode !== "options") return;
+		const records = this.savedData.foldsByFile[filePath] || [];
+		const record = records.find((item) => item.id === regionId);
+		if (!record || record.displayMode === displayMode) return;
+		record.displayMode = displayMode;
+		await this.saveData(this.savedData);
+	}
+
+	async removeSavedRegion(filePath, regionId) {
+		if (!filePath) return;
+		const records = this.savedData.foldsByFile[filePath] || [];
+		const remaining = records.filter((item) => item.id !== regionId);
+		if (remaining.length === records.length) return;
+		if (remaining.length) this.savedData.foldsByFile[filePath] = remaining;
+		else delete this.savedData.foldsByFile[filePath];
+		await this.saveData(this.savedData);
+	}
+
+	restoreActiveView() {
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view?.file || !view.editor?.cm) return;
+
+		const records = this.savedData.foldsByFile[view.file.path] || [];
+		const text = view.editor.getValue();
+		const blocks = listCodeBlocks(view.editor);
+		const regions = [];
+		const expandedIds = [];
+		let recordsChanged = false;
+
+		for (const record of records) {
+			const match = selectRecordCandidate(view.editor, record, blocks);
+			if (!match) continue;
+
+			const bracketFromInExpression = match.expression.indexOf("[");
+			if (bracketFromInExpression <= 0 || !match.expression.endsWith("]")) continue;
+			const label = match.label || match.expression.slice(0, bracketFromInExpression).trimEnd();
+			const region = {
+				id: record.id,
+				filePath: view.file.path,
+				displayMode: record.displayMode || "standard",
+				label,
+				expression: match.expression,
+				labelFrom: match.position,
+				labelTo: match.position + label.length,
+				bracketFrom: match.position + bracketFromInExpression,
+				bracketTo: match.position + match.expression.length,
+			};
+			regions.push(region);
+			if (record.expanded) expandedIds.push(record.id);
+
+			let occurrence = 0;
+			let position = text.indexOf(match.expression);
+			while (position >= 0 && position < match.position) {
+				occurrence += 1;
+				position = text.indexOf(match.expression, position + match.expression.length);
+			}
+			const nextAnchor = buildAnchor(view.editor, region, blocks);
+			if (
+				record.expression !== match.expression ||
+				record.occurrence !== occurrence ||
+				JSON.stringify(record.anchor) !== JSON.stringify(nextAnchor)
+			) {
+				record.expression = match.expression;
+				record.occurrence = occurrence;
+				record.anchor = nextAnchor;
+				recordsChanged = true;
+			}
+		}
+
+		view.editor.cm.dispatch({
+			effects: restoreRegionsEffect.of({ regions, expandedIds }),
+		});
+		if (recordsChanged) void this.saveData(this.savedData);
+	}
+};
+};
+module.exports = __require("./src/main.js");

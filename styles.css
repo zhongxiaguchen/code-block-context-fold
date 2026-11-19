@@ -1,0 +1,123 @@
+.inline-code-fold-label {
+  color: var(--text-accent);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--text-accent) 45%, transparent);
+  text-underline-offset: 2px;
+}
+
+.inline-code-fold-label:hover {
+  color: var(--text-accent-hover);
+  text-decoration-color: currentColor;
+}
+
+.inline-code-fold-options {
+  position: relative;
+  display: inline-block;
+}
+
+.inline-code-fold-label--options {
+  padding: 1px 5px;
+  border: 1px solid color-mix(in srgb, var(--text-accent) 40%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--text-accent) 10%, transparent);
+  text-decoration: none;
+}
+
+.inline-code-fold-options-panel {
+  position: fixed;
+  z-index: 1000;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 170px;
+  max-width: min(360px, 70vw);
+  padding: 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+  white-space: nowrap;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.inline-code-fold-options:hover > .inline-code-fold-options-panel,
+.inline-code-fold-options:focus-within > .inline-code-fold-options-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inline-code-fold-option {
+  position: relative;
+  display: block;
+  padding: 4px 8px;
+  border-radius: 5px;
+  outline: none;
+}
+
+.inline-code-fold-option:hover,
+.inline-code-fold-option:focus {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent-hover);
+}
+
+.inline-code-fold-option-comment {
+  position: fixed;
+  z-index: 1001;
+  top: 0;
+  left: calc(100% + 10px);
+  display: none;
+  width: max-content;
+  max-width: min(360px, 55vw);
+  padding: 6px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 7px;
+  background: var(--background-secondary);
+  box-shadow: var(--shadow-s);
+  color: var(--text-normal);
+  white-space: normal;
+}
+
+.inline-code-fold-option:hover > .inline-code-fold-option-comment,
+.inline-code-fold-option:focus > .inline-code-fold-option-comment {
+  display: block;
+}
+
+.parameter-setup label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.parameter-setup input,
+.parameter-setup textarea {
+  width: 100%;
+}
+
+.parameter-setup-row {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.parameter-setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.inline-code-fold-option-comment {
+  white-space: pre-wrap;
+}

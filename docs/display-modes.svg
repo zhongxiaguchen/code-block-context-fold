@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="两种显示方式：普通折叠与选项悬浮弹窗">
+  <style>
+    .bg { fill: #f7f8fa; }
+    .card { fill: #ffffff; stroke: #e3e6ea; stroke-width: 1.5; }
+    .title { font: 600 15px "Segoe UI", "Microsoft YaHei", sans-serif; fill: #4a5260; }
+    .mono { font: 14px "Cascadia Code", Consolas, monospace; fill: #2f3540; }
+    .muted { font: 13px "Cascadia Code", Consolas, monospace; fill: #98a1ad; }
+    .accent { font: 600 14px "Cascadia Code", Consolas, monospace; fill: #3b7dd8; }
+    .pillText { font: 600 14px "Segoe UI", "Microsoft YaHei", sans-serif; fill: #3b7dd8; }
+    .option { font: 13px "Cascadia Code", Consolas, monospace; fill: #2f3540; }
+    .comment { font: 12px "Segoe UI", "Microsoft YaHei", sans-serif; fill: #5a6371; }
+    .hint { font: 12px "Segoe UI", "Microsoft YaHei", sans-serif; fill: #8b95a1; }
+    .pill { fill: #eaf2fd; stroke: #a9c8f0; stroke-width: 1.2; }
+    .popup { fill: #ffffff; stroke: #d6dae0; stroke-width: 1.2; }
+    .row { fill: #f4f5f7; }
+    .tip { fill: #eef2f7; stroke: #d6dae0; stroke-width: 1.2; }
+    .underline { stroke: #3b7dd8; stroke-width: 1.5; }
+  </style>
+
+  <rect class="bg" x="0" y="0" width="900" height="300" rx="0"/>
+
+  <!-- 左：普通折叠 -->
+  <rect class="card" x="24" y="24" width="400" height="252" rx="12"/>
+  <text class="title" x="48" y="56">普通折叠</text>
+  <text class="mono" x="48" y="108">Cull</text>
+  <text class="accent" x="88" y="108">选项</text>
+  <line class="underline" x1="88" y1="114" x2="116" y2="114"/>
+  <text class="muted" x="124" y="108">[3 个选项已折叠]</text>
+  <text class="hint" x="48" y="140">点击标签展开，再点收起</text>
+
+  <text class="mono" x="48" y="186">ZWrite</text>
+  <text class="accent" x="105" y="186">选项</text>
+  <line class="underline" x1="105" y1="192" x2="133" y2="192"/>
+  <text class="muted" x="141" y="186">[…]</text>
+  <text class="hint" x="48" y="218">同一篇笔记里的多个参数互不影响</text>
+
+  <!-- 右：选项悬浮弹窗 -->
+  <rect class="card" x="476" y="24" width="400" height="252" rx="12"/>
+  <text class="title" x="500" y="56">选项悬浮弹窗</text>
+  <text class="mono" x="500" y="108">Cull</text>
+
+  <!-- 药丸 -->
+  <rect class="pill" x="544" y="90" width="92" height="26" rx="6"/>
+  <text class="pillText" x="556" y="108">Cull 选项</text>
+  <text class="pillText" x="618" y="108">▾</text>
+
+  <!-- 弹窗 -->
+  <rect class="popup" x="544" y="126" width="150" height="102" rx="8"/>
+  <rect class="row" x="550" y="132" width="138" height="26" rx="5"/>
+  <text class="option" x="560" y="149">Back</text>
+  <text class="option" x="560" y="179">Front</text>
+  <text class="option" x="560" y="209">Off</text>
+
+  <!-- 注释气泡 -->
+  <rect class="tip" x="706" y="126" width="146" height="46" rx="7"/>
+  <text class="comment" x="716" y="146">剔除背面，只画正面</text>
+  <text class="comment" x="716" y="163">（默认值）</text>
+
+  <text class="hint" x="500" y="252">悬停选项，右侧浮出它的注释</text>
+</svg>

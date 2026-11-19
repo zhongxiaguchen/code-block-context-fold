@@ -1,0 +1,4 @@
+* text=auto eol=lf
+
+# 构建产物：不在 review 里展示 diff，但需要随仓库一起分发
+main.js linguist-generated=true

@@ -1,0 +1,10 @@
+# 依赖与构建产物之外的临时文件
+node_modules/
+*.log
+
+# Obsidian 会把插件数据写在这里，其中包含你自己的笔记路径与正文片段，绝不能提交
+data.json
+
+# 编辑器与系统文件
+.DS_Store
+Thumbs.db

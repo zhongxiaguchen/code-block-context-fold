@@ -1,0 +1,16 @@
+{
+  "name": "code-block-context-fold",
+  "version": "2.6.0",
+  "description": "把代码块里的“参数[内容]”折叠成可点击的标签或选项悬浮弹窗。",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:esbuild": "node esbuild.config.mjs",
+    "test": "node --test --test-isolation=none \"test/*.test.mjs\"",
+    "deploy": "node scripts/deploy.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
