@@ -10,8 +10,8 @@
  *     由 Obsidian 运行时提供。
  */
 
-import { readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
-import { dirname, resolve, relative } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs";
+import { dirname, join, resolve, relative } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const ENTRY = "src/main.js";
@@ -26,9 +26,16 @@ function idFor(absPath) {
 
 function resolveRequest(fromAbs, spec) {
 	if (!spec.startsWith(".")) return null;
-	let target = resolve(dirname(fromAbs), spec);
-	if (!target.endsWith(".js")) target += ".js";
-	return target;
+	const base = resolve(dirname(fromAbs), spec);
+	// 和 Node 一样支持「显式文件名 / 省略 .js / 目录下的 index.js」
+	for (const candidate of [base, `${base}.js`, join(base, "index.js")]) {
+		try {
+			if (statSync(candidate).isFile()) return candidate;
+		} catch {
+			// 继续试下一个候选
+		}
+	}
+	return `${base}.js`;
 }
 
 function addModule(absPath) {

@@ -1,5 +1,6 @@
 const { Modal, Notice } = require("obsidian");
 const { parseParameterOptions, serializeParameterOptions } = require("../format/parameters");
+const { t } = require("../i18n");
 
 /**
  * 参数选项编辑器：名称 + 若干「选项 / 注释」行，保存时序列化成折叠表达式。
@@ -22,29 +23,29 @@ class ParameterSetupModal extends Modal {
 			parent.appendChild(element);
 			return element;
 		};
-		append(content, "h2", this.initial ? "编辑参数选项" : "插入参数选项");
-		append(content, "p", "1. 设置参数名称 → 2. 添加选项和注释 → 3. 保存为悬浮弹窗。分隔符会自动生成。");
-		const nameLabel = append(content, "label", "参数名称");
+		append(content, "h2", this.initial ? t("modal.titleEdit") : t("modal.titleInsert"));
+		append(content, "p", t("modal.intro"));
+		const nameLabel = append(content, "label", t("modal.name"));
 		const name = append(nameLabel, "input");
 		name.type = "text";
-		name.placeholder = "例如：混合模式";
+		name.placeholder = t("modal.namePlaceholder");
 		name.value = this.initial?.label || "";
-		append(content, "h3", "选项与注释");
+		append(content, "h3", t("modal.optionsHeading"));
 		const list = append(content, "div");
 		const rows = [];
 		const addRow = (option = { value: "", comment: "" }) => {
 			const row = append(list, "div", "", "parameter-setup-row");
-			const valueLabel = append(row, "label", "选项名称");
+			const valueLabel = append(row, "label", t("modal.value"));
 			const value = append(valueLabel, "input");
 			value.type = "text";
-			value.placeholder = "例如：Normal";
+			value.placeholder = t("modal.valuePlaceholder");
 			value.value = option.value;
-			const commentLabel = append(row, "label", "注释（可选）");
+			const commentLabel = append(row, "label", t("modal.comment"));
 			const comment = append(commentLabel, "input");
 			comment.type = "text";
-			comment.placeholder = "例如：剔除背面，默认值";
+			comment.placeholder = t("modal.commentPlaceholder");
 			comment.value = option.comment;
-			const remove = append(row, "button", "删除此选项");
+			const remove = append(row, "button", t("modal.removeRow"));
 			remove.type = "button";
 			const entry = { row, value, comment };
 			rows.push(entry);
@@ -55,14 +56,19 @@ class ParameterSetupModal extends Modal {
 		};
 		const options = this.initial ? parseParameterOptions(this.initial.expression) : [];
 		for (const option of options.length ? options : [{ value: "", comment: "" }]) addRow(option);
-		const add = append(content, "button", "+ 添加一个选项");
+		const add = append(content, "button", t("modal.addRow"));
 		add.type = "button";
 		add.addEventListener("click", () => addRow());
-		append(content, "p", "每行一个选项，// 之后是注释。参数名、选项名和注释里不能出现方括号。");
+		append(content, "p", t("modal.hint"));
 		const actions = append(content, "div", "", "parameter-setup-actions");
-		const cancel = append(actions, "button", "取消");
+		const cancel = append(actions, "button", t("modal.cancel"));
 		cancel.addEventListener("click", () => this.close());
-		const save = append(actions, "button", this.initial ? "保存修改" : "插入并折叠", "mod-cta");
+		const save = append(
+			actions,
+			"button",
+			this.initial ? t("modal.saveEdit") : t("modal.saveInsert"),
+			"mod-cta",
+		);
 		save.addEventListener("click", async () => {
 			try {
 				const expression = serializeParameterOptions(name.value, rows.map((entry) => ({
@@ -72,7 +78,7 @@ class ParameterSetupModal extends Modal {
 				await this.onSave(expression, name.value.trim());
 				this.close();
 			} catch (error) {
-				new Notice(error.message || "保存失败，请重试");
+				new Notice(error.message || t("notice.saveFailed"));
 				save.disabled = false;
 			}
 		});

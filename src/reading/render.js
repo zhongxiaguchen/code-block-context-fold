@@ -1,6 +1,7 @@
 const { parseParameterOptions } = require("../format/parameters");
 const { createOptionsElement } = require("../ui/options-dom");
 const { locateRange } = require("../editor/text-range");
+const { t } = require("../i18n");
 
 const SHOW_TEXT = 4;
 
@@ -57,7 +58,7 @@ function createReadingFold(region) {
 	let trigger;
 	if (region.displayMode === "options" && options.length) {
 		trigger = createOptionsElement(region, {
-			hint: `${region.label}：悬浮查看选项，点击展开原文`,
+			hint: t("a11y.optionsReading", { label: region.label }),
 		});
 	} else {
 		trigger = document.createElement("span");

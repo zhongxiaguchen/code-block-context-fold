@@ -8,7 +8,7 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.3.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.4.0
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -21,13 +21,14 @@
 - **编辑视图和阅读视图都生效**：切到阅读视图、导出 PDF 时折叠依然保留，标签可以点击展开。
 - **记录跟着笔记走**：折叠位置写进插件数据，重开笔记自动恢复；笔记重命名时记录跟着迁移。
 - **有设置页和折叠总览**：默认显示方式、阅读视图开关；总览里能盘点、跳转、逐条删除、清理失效记录。
+- **界面中英双语**：跟随 Obsidian 的语言设置，其他语言回退英文。
 
 ## 安装
 
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.3.0.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.4.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
@@ -113,7 +114,7 @@ node scripts/deploy.mjs --vault "D:\某个库"
 - **阅读视图和编辑视图用同一套锚点定位**：不再要求原文一字不差，改过的内容也能找回折叠位置。代价是每次渲染会读一次笔记源码（按文件缓存，文件变动时失效）；如果两个代码块内容完全相同，会按出现顺序各自对应。
 - 方括号 `[ ]` 属于结构字符，不能出现在参数名、选项名或注释里（`_` 已经没有限制了）。
 - 笔记被改动后，插件靠锚点重新定位折叠位置；当同一段文本出现多次且锚点无法区分时，它会放弃恢复而不是猜一个位置。
-- **界面文案目前只有中文**，英文界面还没有做。
+- 界面语言跟随 Obsidian 设置，目前提供中文和英文；其他语言回退到英文。
 
 ## 开发
 

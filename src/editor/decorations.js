@@ -3,6 +3,7 @@ const { Decoration, EditorView } = require("@codemirror/view");
 const { parseParameterOptions } = require("../format/parameters");
 const { ParameterOptionsWidget } = require("../ui/options-widget");
 const { getActivePlugin, setContextRegionId, getContextRegionId } = require("../state");
+const { t } = require("../i18n");
 
 /**
  * CodeMirror 侧的折叠状态：一份 region 列表 + 展开集合，派生出装饰。
@@ -52,7 +53,7 @@ function createDecorations(regions, expandedRegionIds) {
 				class: "inline-code-fold-label",
 				attributes: {
 					"data-inline-code-fold-id": region.id,
-					title: `${region.label}：点击展开或收起`,
+					title: t("a11y.toggle", { label: region.label }),
 				},
 			}).range(region.labelFrom, region.labelTo),
 		);

@@ -9,6 +9,224 @@ function __require(id) {
 	__modules[id](module, module.exports, __require);
 	return module.exports;
 }
+__modules["./src/i18n/strings.js"] = function (module, exports, __require) {
+/**
+ * 界面文案。两组 key 必须完全一致，test/i18n.test.mjs 会强制检查。
+ *
+ * 占位符写法：{name}，由 t() 替换。
+ */
+
+const MESSAGES = {
+	en: {
+		"menu.insertOptions": "Insert parameter options…",
+		"menu.editOptions": "Edit parameter options…",
+		"menu.expand": "Expand",
+		"menu.collapse": "Collapse",
+		"menu.modeStandard": "Display: plain fold",
+		"menu.modeOptions": "Display: options popup",
+		"menu.modeCurrent": " (current)",
+		"menu.remove": "Remove fold",
+		"menu.foldSelection": "Fold selected parameter",
+
+		"notice.noOptions": "No options found to display",
+		"notice.contentChanged": "The note or the active file changed — reopen the settings from the context menu",
+		"notice.saveFailed": "Save failed, please try again",
+		"notice.selectionInvalid": "Select a complete name[content] inside a single code block (multi-line is fine)",
+		"notice.noEditor": "This editor does not support parameter folding",
+
+		"cmd.foldSelection": "Fold the selected parameter",
+		"cmd.removeAtCursor": "Remove the fold at the cursor",
+		"cmd.overview": "Open fold overview",
+
+		"ribbon.overview": "Fold overview",
+
+		"a11y.toggle": "{label}: click to expand or collapse",
+		"a11y.optionsEditor": "{label}: hover for options, right-click to reveal the source",
+		"a11y.optionsReading": "{label}: hover for options, click to reveal the source",
+
+		"options.noComment": "No comment",
+
+		"modal.titleEdit": "Edit parameter options",
+		"modal.titleInsert": "Insert parameter options",
+		"modal.intro": "1. Name the parameter → 2. Add options and comments → 3. Save. Separators are generated for you.",
+		"modal.name": "Parameter name",
+		"modal.namePlaceholder": "e.g. Blend mode",
+		"modal.optionsHeading": "Options and comments",
+		"modal.value": "Option value",
+		"modal.valuePlaceholder": "e.g. Normal",
+		"modal.comment": "Comment (optional)",
+		"modal.commentPlaceholder": "e.g. cull back faces, the default",
+		"modal.removeRow": "Remove this option",
+		"modal.addRow": "+ Add an option",
+		"modal.hint": "One option per line; // starts a comment. Parameter names, option values and comments cannot contain brackets.",
+		"modal.cancel": "Cancel",
+		"modal.saveEdit": "Save changes",
+		"modal.saveInsert": "Insert and fold",
+
+		"settings.defaultMode.name": "Default display mode",
+		"settings.defaultMode.desc": "Which form new folds take. Existing folds can be switched individually from the tag's context menu.",
+		"settings.modeStandard": "Plain fold (click the tag to expand)",
+		"settings.modeOptions": "Options popup (hover to see the options)",
+		"settings.reading.name": "Also fold in reading view",
+		"settings.reading.desc": "When off, folds only apply in the editor; reading view and PDF export keep the original text.",
+		"settings.overview.name": "Fold overview",
+		"settings.overview.desc": "Browse every fold in the vault, jump to its note, and clean up records for deleted notes.",
+		"settings.overview.open": "Open",
+		"settings.privacy": "Fold records are stored in this plugin's data.json. They include note paths and snippets of note text — do not share that file.",
+
+		"overview.title": "Fold overview",
+		"overview.summary": "{notes} notes, {count} folds",
+		"overview.summaryFiltered": "{matched} of {total} folds in {notes} notes",
+		"overview.empty": "No folds yet.",
+		"overview.emptyFiltered": "No matching folds.",
+		"overview.countSuffix": "{count} folds",
+		"overview.staleTitle": "Stale — note no longer exists: {count}",
+		"overview.cleanStale": "Clean up records for these {count} notes",
+		"overview.badgeOptions": "Popup",
+		"overview.badgeStandard": "Fold",
+		"overview.badgeExpanded": "Expanded",
+		"overview.remove": "Delete",
+		"overview.search": "Search tags, options or note names",
+
+		"error.nameRequired": "Please enter a parameter name",
+		"error.nameInvalid": "The parameter name cannot contain line breaks or brackets",
+		"error.optionsRequired": "Add at least one option",
+		"error.valueRequired": "Every option needs a value",
+		"error.valueInvalid": "Option values cannot contain line breaks or brackets",
+		"error.valueSlash": "Option values cannot contain // — it starts a comment",
+		"error.commentInvalid": "Comments cannot contain brackets",
+	},
+
+	zh: {
+		"menu.insertOptions": "插入参数选项…",
+		"menu.editOptions": "编辑参数选项…",
+		"menu.expand": "展开参数内容",
+		"menu.collapse": "收起参数内容",
+		"menu.modeStandard": "显示方式：普通折叠",
+		"menu.modeOptions": "显示方式：选项悬浮弹窗",
+		"menu.modeCurrent": "（当前）",
+		"menu.remove": "取消参数折叠",
+		"menu.foldSelection": "折叠选中参数",
+
+		"notice.noOptions": "没有找到可显示的参数选项",
+		"notice.contentChanged": "笔记内容或当前文件已变化，请重新右键打开设置",
+		"notice.saveFailed": "保存失败，请重试",
+		"notice.selectionInvalid": "请在同一个代码块内选中完整的“参数[内容]”，支持多行",
+		"notice.noEditor": "当前编辑器不支持参数折叠",
+
+		"cmd.foldSelection": "折叠选中的参数内容",
+		"cmd.removeAtCursor": "取消光标处的参数折叠",
+		"cmd.overview": "打开折叠总览",
+
+		"ribbon.overview": "折叠总览",
+
+		"a11y.toggle": "{label}：点击展开或收起",
+		"a11y.optionsEditor": "{label}：悬浮查看选项，右键展开原文",
+		"a11y.optionsReading": "{label}：悬浮查看选项，点击展开原文",
+
+		"options.noComment": "暂无注释",
+
+		"modal.titleEdit": "编辑参数选项",
+		"modal.titleInsert": "插入参数选项",
+		"modal.intro": "1. 设置参数名称 → 2. 添加选项和注释 → 3. 保存为悬浮弹窗。分隔符会自动生成。",
+		"modal.name": "参数名称",
+		"modal.namePlaceholder": "例如：混合模式",
+		"modal.optionsHeading": "选项与注释",
+		"modal.value": "选项名称",
+		"modal.valuePlaceholder": "例如：Normal",
+		"modal.comment": "注释（可选）",
+		"modal.commentPlaceholder": "例如：剔除背面，默认值",
+		"modal.removeRow": "删除此选项",
+		"modal.addRow": "+ 添加一个选项",
+		"modal.hint": "每行一个选项，// 之后是注释。参数名、选项名和注释里不能出现方括号。",
+		"modal.cancel": "取消",
+		"modal.saveEdit": "保存修改",
+		"modal.saveInsert": "插入并折叠",
+
+		"settings.defaultMode.name": "默认显示方式",
+		"settings.defaultMode.desc": "新折叠的项目用哪种形态；已有项目可在标签上右键单独切换。",
+		"settings.modeStandard": "普通折叠（点标签展开）",
+		"settings.modeOptions": "选项悬浮弹窗（悬停看选项）",
+		"settings.reading.name": "阅读视图也折叠",
+		"settings.reading.desc": "关闭后只在编辑视图生效，阅读视图和导出 PDF 保持原文。",
+		"settings.overview.name": "折叠总览",
+		"settings.overview.desc": "查看本库所有折叠、跳到对应笔记，以及清理已失效的记录。",
+		"settings.overview.open": "打开",
+		"settings.privacy": "折叠记录保存在本插件目录的 data.json 里，含笔记路径与正文片段，请勿分享该文件。",
+
+		"overview.title": "折叠总览",
+		"overview.summary": "{notes} 篇笔记，共 {count} 处折叠",
+		"overview.summaryFiltered": "匹配 {matched} / 共 {total} 处，{notes} 篇笔记",
+		"overview.empty": "还没有任何折叠。",
+		"overview.emptyFiltered": "没有匹配的折叠。",
+		"overview.countSuffix": "{count} 处",
+		"overview.staleTitle": "已失效（笔记不存在）　{count} 篇",
+		"overview.cleanStale": "清理这 {count} 篇的失效记录",
+		"overview.badgeOptions": "弹窗",
+		"overview.badgeStandard": "折叠",
+		"overview.badgeExpanded": "已展开",
+		"overview.remove": "删除",
+		"overview.search": "搜索标签、选项或笔记名",
+
+		"error.nameRequired": "请填写参数名称",
+		"error.nameInvalid": "参数名称不能包含换行或方括号",
+		"error.optionsRequired": "请至少添加一个选项",
+		"error.valueRequired": "每个选项都需要填写名称",
+		"error.valueInvalid": "选项名称不能包含换行或方括号",
+		"error.valueSlash": "选项名称不能包含 //，它会被当成注释起点",
+		"error.commentInvalid": "注释不能包含方括号",
+	},
+};
+
+module.exports = { MESSAGES };
+};
+__modules["./src/i18n/index.js"] = function (module, exports, __require) {
+const { MESSAGES } = __require("./src/i18n/strings.js");
+
+const FALLBACK = "en";
+
+let cachedLanguage = null;
+
+/**
+ * Obsidian 把界面语言放在 localStorage 的 language 字段里，形如 zh、zh-TW、en。
+ * 没有 window（Node 测试环境）或读不到时一律退回英文。
+ */
+function detectLanguage() {
+	try {
+		if (typeof window === "undefined") return FALLBACK;
+		const raw = window.localStorage.getItem("language") || "";
+		return String(raw).toLowerCase().startsWith("zh") ? "zh" : FALLBACK;
+	} catch {
+		return FALLBACK;
+	}
+}
+
+function getLanguage() {
+	if (!cachedLanguage) cachedLanguage = detectLanguage();
+	return cachedLanguage;
+}
+
+/** 只给测试和“强制语言”用；正常运行时不调用。 */
+function setLanguage(language) {
+	cachedLanguage = MESSAGES[language] ? language : FALLBACK;
+}
+
+function interpolate(text, vars) {
+	if (!vars) return text;
+	return text.replace(/\{(\w+)\}/g, (match, name) =>
+		Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : match,
+	);
+}
+
+function t(key, vars) {
+	const language = getLanguage();
+	const table = MESSAGES[language] || MESSAGES[FALLBACK];
+	const text = table[key] ?? MESSAGES[FALLBACK][key] ?? key;
+	return interpolate(text, vars);
+}
+
+module.exports = { t, getLanguage, setLanguage, detectLanguage, FALLBACK };
+};
 __modules["./src/format/parameters.js"] = function (module, exports, __require) {
 /**
  * 参数表达式的解析与序列化。
@@ -23,6 +241,15 @@ __modules["./src/format/parameters.js"] = function (module, exports, __require) 
  * 用换行分隔选项（而不是某个分隔符），参数名、选项名和注释里就都能自由出现
  * `_`、`=`、括号以外的符号；只有方括号仍然是结构字符。
  */
+
+const { t } = __require("./src/i18n/index.js");
+
+/** 报错文案随界面语言变化，code 保持不变，便于调用方和测试按类型判断。 */
+function fail(code) {
+	const error = new Error(t(`error.${code}`));
+	error.code = code;
+	return error;
+}
 
 function parseParameterOptions(expression) {
 	const bracketFrom = expression.indexOf("[");
@@ -43,18 +270,18 @@ function parseParameterOptions(expression) {
 
 function serializeParameterOptions(label, options) {
 	label = String(label || "").trim();
-	if (!label) throw new Error("请填写参数名称");
-	if (/[\r\n\[\]]/.test(label)) throw new Error("参数名称不能包含换行或方括号");
-	if (!options.length) throw new Error("请至少添加一个选项");
+	if (!label) throw fail("nameRequired");
+	if (/[\r\n\[\]]/.test(label)) throw fail("nameInvalid");
+	if (!options.length) throw fail("optionsRequired");
 
 	const parts = options.map((option) => {
 		const value = String(option.value || "").trim();
 		// 注释允许换行输入，但落盘时压成一行——换行现在是选项分隔符
 		const comment = String(option.comment || "").replace(/\s+/g, " ").trim();
-		if (!value) throw new Error("每个选项都需要填写名称");
-		if (/[\r\n\[\]]/.test(value)) throw new Error("选项名称不能包含换行或方括号");
-		if (value.includes("//")) throw new Error("选项名称不能包含 //，它会被当成注释起点");
-		if (/[\[\]]/.test(comment)) throw new Error("注释不能包含方括号");
+		if (!value) throw fail("valueRequired");
+		if (/[\r\n\[\]]/.test(value)) throw fail("valueInvalid");
+		if (value.includes("//")) throw fail("valueSlash");
+		if (/[\[\]]/.test(comment)) throw fail("commentInvalid");
 		return "  " + value + (comment ? "//" + comment : "");
 	});
 
@@ -65,12 +292,13 @@ module.exports = { parseParameterOptions, serializeParameterOptions };
 };
 __modules["./src/ui/options-dom.js"] = function (module, exports, __require) {
 const { parseParameterOptions } = __require("./src/format/parameters.js");
+const { t } = __require("./src/i18n/index.js");
 
 /**
  * 「参数 ▾」药丸 + 选项悬浮面板的 DOM。
  * 编辑器里的 Widget 和阅读视图的后期渲染共用同一份结构，样式与交互只维护一次。
  */
-function createOptionsElement(region, { hint = `${region.label}：悬浮查看选项，右键展开原文` } = {}) {
+function createOptionsElement(region, { hint = t("a11y.optionsEditor", { label: region.label }) } = {}) {
 	const root = document.createElement("span");
 	root.className = "inline-code-fold-options";
 
@@ -99,7 +327,7 @@ function createOptionsElement(region, { hint = `${region.label}：悬浮查看�
 
 		const comment = document.createElement("span");
 		comment.className = "inline-code-fold-option-comment";
-		comment.textContent = option.comment || "暂无注释";
+		comment.textContent = option.comment || t("options.noComment");
 		row.appendChild(comment);
 		panel.appendChild(row);
 	}
@@ -241,6 +469,7 @@ const { Decoration, EditorView } = require("@codemirror/view");
 const { parseParameterOptions } = __require("./src/format/parameters.js");
 const { ParameterOptionsWidget } = __require("./src/ui/options-widget.js");
 const { getActivePlugin, setContextRegionId, getContextRegionId } = __require("./src/state.js");
+const { t } = __require("./src/i18n/index.js");
 
 /**
  * CodeMirror 侧的折叠状态：一份 region 列表 + 展开集合，派生出装饰。
@@ -290,7 +519,7 @@ function createDecorations(regions, expandedRegionIds) {
 				class: "inline-code-fold-label",
 				attributes: {
 					"data-inline-code-fold-id": region.id,
-					title: `${region.label}：点击展开或收起`,
+					title: t("a11y.toggle", { label: region.label }),
 				},
 			}).range(region.labelFrom, region.labelTo),
 		);
@@ -820,6 +1049,7 @@ module.exports = { createRegionId };
 __modules["./src/ui/setup-modal.js"] = function (module, exports, __require) {
 const { Modal, Notice } = require("obsidian");
 const { parseParameterOptions, serializeParameterOptions } = __require("./src/format/parameters.js");
+const { t } = __require("./src/i18n/index.js");
 
 /**
  * 参数选项编辑器：名称 + 若干「选项 / 注释」行，保存时序列化成折叠表达式。
@@ -842,29 +1072,29 @@ class ParameterSetupModal extends Modal {
 			parent.appendChild(element);
 			return element;
 		};
-		append(content, "h2", this.initial ? "编辑参数选项" : "插入参数选项");
-		append(content, "p", "1. 设置参数名称 → 2. 添加选项和注释 → 3. 保存为悬浮弹窗。分隔符会自动生成。");
-		const nameLabel = append(content, "label", "参数名称");
+		append(content, "h2", this.initial ? t("modal.titleEdit") : t("modal.titleInsert"));
+		append(content, "p", t("modal.intro"));
+		const nameLabel = append(content, "label", t("modal.name"));
 		const name = append(nameLabel, "input");
 		name.type = "text";
-		name.placeholder = "例如：混合模式";
+		name.placeholder = t("modal.namePlaceholder");
 		name.value = this.initial?.label || "";
-		append(content, "h3", "选项与注释");
+		append(content, "h3", t("modal.optionsHeading"));
 		const list = append(content, "div");
 		const rows = [];
 		const addRow = (option = { value: "", comment: "" }) => {
 			const row = append(list, "div", "", "parameter-setup-row");
-			const valueLabel = append(row, "label", "选项名称");
+			const valueLabel = append(row, "label", t("modal.value"));
 			const value = append(valueLabel, "input");
 			value.type = "text";
-			value.placeholder = "例如：Normal";
+			value.placeholder = t("modal.valuePlaceholder");
 			value.value = option.value;
-			const commentLabel = append(row, "label", "注释（可选）");
+			const commentLabel = append(row, "label", t("modal.comment"));
 			const comment = append(commentLabel, "input");
 			comment.type = "text";
-			comment.placeholder = "例如：剔除背面，默认值";
+			comment.placeholder = t("modal.commentPlaceholder");
 			comment.value = option.comment;
-			const remove = append(row, "button", "删除此选项");
+			const remove = append(row, "button", t("modal.removeRow"));
 			remove.type = "button";
 			const entry = { row, value, comment };
 			rows.push(entry);
@@ -875,14 +1105,19 @@ class ParameterSetupModal extends Modal {
 		};
 		const options = this.initial ? parseParameterOptions(this.initial.expression) : [];
 		for (const option of options.length ? options : [{ value: "", comment: "" }]) addRow(option);
-		const add = append(content, "button", "+ 添加一个选项");
+		const add = append(content, "button", t("modal.addRow"));
 		add.type = "button";
 		add.addEventListener("click", () => addRow());
-		append(content, "p", "每行一个选项，// 之后是注释。参数名、选项名和注释里不能出现方括号。");
+		append(content, "p", t("modal.hint"));
 		const actions = append(content, "div", "", "parameter-setup-actions");
-		const cancel = append(actions, "button", "取消");
+		const cancel = append(actions, "button", t("modal.cancel"));
 		cancel.addEventListener("click", () => this.close());
-		const save = append(actions, "button", this.initial ? "保存修改" : "插入并折叠", "mod-cta");
+		const save = append(
+			actions,
+			"button",
+			this.initial ? t("modal.saveEdit") : t("modal.saveInsert"),
+			"mod-cta",
+		);
 		save.addEventListener("click", async () => {
 			try {
 				const expression = serializeParameterOptions(name.value, rows.map((entry) => ({
@@ -892,7 +1127,7 @@ class ParameterSetupModal extends Modal {
 				await this.onSave(expression, name.value.trim());
 				this.close();
 			} catch (error) {
-				new Notice(error.message || "保存失败，请重试");
+				new Notice(error.message || t("notice.saveFailed"));
 				save.disabled = false;
 			}
 		});
@@ -1001,6 +1236,7 @@ __modules["./src/ui/overview-modal.js"] = function (module, exports, __require) 
 const { MarkdownView, Modal } = require("obsidian");
 const { buildOverview } = __require("./src/settings/overview.js");
 const { parameterFoldField, removeRegionEffect } = __require("./src/editor/decorations.js");
+const { t } = __require("./src/i18n/index.js");
 
 /**
  * 折叠总览：按笔记分组列出所有折叠，支持搜索、跳转、单条删除、清理失效记录。
@@ -1028,13 +1264,13 @@ class FoldOverviewModal extends Modal {
 		contentEl.addClass("inline-code-fold-overview");
 
 		const header = contentEl.createDiv({ cls: "inline-code-fold-overview-header" });
-		header.createEl("h2", { text: "折叠总览" });
+		header.createEl("h2", { text: t("overview.title") });
 		this.countEl = header.createEl("p", { cls: "setting-item-description" });
 
 		const searchWrap = contentEl.createDiv({ cls: "inline-code-fold-overview-search" });
 		const input = searchWrap.createEl("input", {
 			type: "search",
-			placeholder: "搜索标签、选项或笔记名",
+			placeholder: t("overview.search"),
 		});
 		input.value = this.query;
 		input.addEventListener("input", () => {
@@ -1064,15 +1300,19 @@ class FoldOverviewModal extends Modal {
 		);
 
 		this.countEl.textContent = overview.filtered
-			? `匹配 ${overview.total} / ${overview.allTotal} 处，${overview.groups.length} 篇笔记`
-			: `${overview.groups.length} 篇笔记，共 ${overview.total} 处折叠`;
+			? t("overview.summaryFiltered", {
+					matched: overview.total,
+					total: overview.allTotal,
+					notes: overview.groups.length,
+				})
+			: t("overview.summary", { notes: overview.groups.length, count: overview.total });
 
 		const container = this.resultsEl;
 		container.replaceChildren();
 
 		if (!overview.groups.length && !overview.stale.length) {
 			container.createEl("p", {
-				text: overview.filtered ? "没有匹配的折叠。" : "还没有任何折叠。",
+				text: overview.filtered ? t("overview.emptyFiltered") : t("overview.empty"),
 			});
 			return;
 		}
@@ -1088,7 +1328,10 @@ class FoldOverviewModal extends Modal {
 				this.close();
 				void this.app.workspace.getLeaf(false).openFile(file);
 			});
-			title.createSpan({ text: `　${group.records.length} 处`, cls: "setting-item-description" });
+			title.createSpan({
+				text: `　${t("overview.countSuffix", { count: group.records.length })}`,
+				cls: "setting-item-description",
+			});
 
 			const list = section.createDiv({ cls: "inline-code-fold-overview-list" });
 			for (const record of group.records) {
@@ -1100,7 +1343,7 @@ class FoldOverviewModal extends Modal {
 			const section = container.createDiv({ cls: "inline-code-fold-overview-group" });
 			const title = section.createDiv({ cls: "inline-code-fold-overview-title" });
 			title.createSpan({
-				text: `已失效（笔记不存在）　${overview.stale.length} 篇`,
+				text: t("overview.staleTitle", { count: overview.stale.length }),
 				cls: "inline-code-fold-overview-stale",
 			});
 
@@ -1108,11 +1351,16 @@ class FoldOverviewModal extends Modal {
 			for (const item of overview.stale) {
 				const row = list.createDiv({ cls: "inline-code-fold-overview-row" });
 				row.createSpan({ text: item.path, cls: "inline-code-fold-overview-label" });
-				row.createSpan({ text: `　${item.count} 处`, cls: "setting-item-description" });
+				row.createSpan({
+					text: `　${t("overview.countSuffix", { count: item.count })}`,
+					cls: "setting-item-description",
+				});
 			}
 
 			const actions = section.createDiv({ cls: "inline-code-fold-overview-actions" });
-			const clean = actions.createEl("button", { text: `清理这 ${overview.stale.length} 篇的失效记录` });
+			const clean = actions.createEl("button", {
+				text: t("overview.cleanStale", { count: overview.stale.length }),
+			});
 			clean.addEventListener("click", async () => {
 				for (const item of overview.stale) delete this.plugin.savedData.foldsByFile[item.path];
 				await this.plugin.saveData(this.plugin.savedData);
@@ -1129,14 +1377,17 @@ class FoldOverviewModal extends Modal {
 			row.createSpan({ text: record.preview, cls: "inline-code-fold-overview-preview" });
 		}
 		row.createSpan({
-			text: record.displayMode === "options" ? "弹窗" : "折叠",
+			text: record.displayMode === "options" ? t("overview.badgeOptions") : t("overview.badgeStandard"),
 			cls: "inline-code-fold-overview-badge",
 		});
 		if (record.expanded) {
-			row.createSpan({ text: "已展开", cls: "inline-code-fold-overview-badge" });
+			row.createSpan({ text: t("overview.badgeExpanded"), cls: "inline-code-fold-overview-badge" });
 		}
 
-		const remove = row.createEl("button", { text: "删除", cls: "inline-code-fold-overview-remove" });
+		const remove = row.createEl("button", {
+			text: t("overview.remove"),
+			cls: "inline-code-fold-overview-remove",
+		});
 		remove.addEventListener("click", async () => {
 			await this.plugin.removeSavedRegion(path, record.id);
 			this.detachFromOpenView(path, record.id);
@@ -1159,6 +1410,7 @@ module.exports = FoldOverviewModal;
 __modules["./src/ui/settings-tab.js"] = function (module, exports, __require) {
 const { PluginSettingTab, Setting } = require("obsidian");
 const FoldOverviewModal = __require("./src/ui/overview-modal.js");
+const { t } = __require("./src/i18n/index.js");
 
 /**
  * 设置页：两个行为开关，外加入口。
@@ -1174,12 +1426,12 @@ class FoldSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("默认显示方式")
-			.setDesc("新折叠的项目用哪种形态；已有项目可在标签上右键单独切换。")
+			.setName(t("settings.defaultMode.name"))
+			.setDesc(t("settings.defaultMode.desc"))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("standard", "普通折叠（点标签展开）")
-					.addOption("options", "选项悬浮弹窗（悬停看选项）")
+					.addOption("standard", t("settings.modeStandard"))
+					.addOption("options", t("settings.modeOptions"))
 					.setValue(this.plugin.settings.defaultDisplayMode)
 					.onChange(async (value) => {
 						this.plugin.settings.defaultDisplayMode = value;
@@ -1188,8 +1440,8 @@ class FoldSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("阅读视图也折叠")
-			.setDesc("关闭后只在编辑视图生效，阅读视图和导出 PDF 保持原文。")
+			.setName(t("settings.reading.name"))
+			.setDesc(t("settings.reading.desc"))
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.readingView).onChange(async (value) => {
 					this.plugin.settings.readingView = value;
@@ -1198,16 +1450,16 @@ class FoldSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("折叠总览")
-			.setDesc("查看本库所有折叠、跳到对应笔记，以及清理已失效的记录。")
+			.setName(t("settings.overview.name"))
+			.setDesc(t("settings.overview.desc"))
 			.addButton((button) =>
-				button.setButtonText("打开").onClick(() => {
+				button.setButtonText(t("settings.overview.open")).onClick(() => {
 					new FoldOverviewModal(this.app, this.plugin).open();
 				}),
 			);
 
 		containerEl.createEl("p", {
-			text: "折叠记录保存在本插件目录的 data.json 里，含笔记路径与正文片段，请勿分享该文件。",
+			text: t("settings.privacy"),
 			cls: "setting-item-description",
 		});
 	}
@@ -1282,6 +1534,7 @@ __modules["./src/reading/render.js"] = function (module, exports, __require) {
 const { parseParameterOptions } = __require("./src/format/parameters.js");
 const { createOptionsElement } = __require("./src/ui/options-dom.js");
 const { locateRange } = __require("./src/editor/text-range.js");
+const { t } = __require("./src/i18n/index.js");
 
 const SHOW_TEXT = 4;
 
@@ -1338,7 +1591,7 @@ function createReadingFold(region) {
 	let trigger;
 	if (region.displayMode === "options" && options.length) {
 		trigger = createOptionsElement(region, {
-			hint: `${region.label}：悬浮查看选项，点击展开原文`,
+			hint: t("a11y.optionsReading", { label: region.label }),
 		});
 	} else {
 		trigger = document.createElement("span");
@@ -1469,6 +1722,7 @@ const { parseSelectedParameter } = __require("./src/editor/selection.js");
 const { parameterFoldField, addRegionEffect } = __require("./src/editor/decorations.js");
 const { createRegionId } = __require("./src/util/id.js");
 const { getActivePlugin } = __require("./src/state.js");
+const { t } = __require("./src/i18n/index.js");
 
 /**
  * 把当前选区登记成一个折叠区域（不改动文本）。
@@ -1476,7 +1730,7 @@ const { getActivePlugin } = __require("./src/state.js");
 function registerSelectedParameter(editor) {
 	const parsedRegion = parseSelectedParameter(editor);
 	if (!parsedRegion) {
-		new Notice("请在同一个代码块内选中完整的“参数[内容]”，支持多行");
+		new Notice(t("notice.selectionInvalid"));
 		return false;
 	}
 	const plugin = getActivePlugin();
@@ -1490,7 +1744,7 @@ function registerSelectedParameter(editor) {
 
 	const editorView = editor.cm;
 	if (!editorView) {
-		new Notice("当前编辑器不支持参数折叠");
+		new Notice(t("notice.noEditor"));
 		return false;
 	}
 
@@ -1563,6 +1817,7 @@ const { ParameterSetupModal } = __require("./src/ui/setup-modal.js");
 const FoldSettingsTab = __require("./src/ui/settings-tab.js");
 const FoldOverviewModal = __require("./src/ui/overview-modal.js");
 const { normalizeSettings } = __require("./src/settings/defaults.js");
+const { t } = __require("./src/i18n/index.js");
 const { applyReadingRegions } = __require("./src/reading/render.js");
 const { createTextSurface, resolveReadingRegions, findRenderedBlock } = __require("./src/reading/source.js");
 const {
@@ -1578,6 +1833,14 @@ const {
 } = __require("./src/state.js");
 
 const DATA_SCHEMA_VERSION = 3;
+
+/** 两种显示方式的菜单项，文案随界面语言变化。 */
+function displayModes() {
+	return [
+		{ value: "standard", title: t("menu.modeStandard") },
+		{ value: "options", title: t("menu.modeOptions") },
+	];
+}
 
 module.exports = class CodeParameterFoldPlugin extends Plugin {
 	openParameterSetup(editor, existing = null) {
@@ -1596,7 +1859,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		} : null;
 		new ParameterSetupModal(this.app, initial, async (expression, label) => {
 			if (editor.getValue() !== snapshot || this.app.workspace.getActiveFile()?.path !== filePath) {
-				throw new Error("笔记内容或当前文件已变化，请重新右键打开设置");
+				throw new Error(t("notice.contentChanged"));
 			}
 			const fence = String.fromCharCode(96).repeat(3);
 			const prefix = insideBlock ? "" : (position.ch > 0 ? "\n" : "") + fence + "text\n";
@@ -1627,31 +1890,28 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		if (!region) return;
 		const expanded = field.expanded.has(regionId);
 		const menu = new Menu(this.app);
-		menu.addItem((item) => item.setTitle("插入参数选项…").setIcon("plus").onClick(() => {
+		menu.addItem((item) => item.setTitle(t("menu.insertOptions")).setIcon("plus").onClick(() => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (view?.editor?.cm === editorView) this.openParameterSetup(view.editor);
 		}));
-		menu.addItem((item) => item.setTitle("编辑参数选项…").setIcon("pencil").onClick(() => {
+		menu.addItem((item) => item.setTitle(t("menu.editOptions")).setIcon("pencil").onClick(() => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (view?.editor?.cm === editorView) this.openParameterSetup(view.editor, region);
 		}));
 		menu.addItem((item) => item
-			.setTitle(expanded ? "收起参数内容" : "展开参数内容")
+			.setTitle(expanded ? t("menu.collapse") : t("menu.expand"))
 			.setIcon(expanded ? "fold-vertical" : "unfold-vertical")
 			.onClick(() => {
 				editorView.dispatch({ effects: toggleRegionEffect.of(regionId) });
 				void this.setRegionExpanded(region.filePath, regionId, !expanded);
 			}));
-		for (const mode of [
-			{ value: "standard", title: "显示方式：普通折叠" },
-			{ value: "options", title: "显示方式：选项悬浮弹窗" },
-		]) {
+		for (const mode of displayModes()) {
 			menu.addItem((item) => item
-				.setTitle(`${mode.title}${region.displayMode === mode.value ? "（当前）" : ""}`)
+				.setTitle(`${mode.title}${region.displayMode === mode.value ? t("menu.modeCurrent") : ""}`)
 				.setIcon(region.displayMode === mode.value ? "check" : "list")
 				.onClick(() => {
 					if (mode.value === "options" && !parseParameterOptions(region.expression).length) {
-						new Notice("没有找到可显示的参数选项");
+						new Notice(t("notice.noOptions"));
 						return;
 					}
 					editorView.dispatch({ effects: setRegionDisplayModeEffect.of({
@@ -1660,7 +1920,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 					void this.setRegionDisplayMode(region.filePath, regionId, mode.value);
 				}));
 		}
-		menu.addItem((item) => item.setTitle("取消参数折叠").setIcon("x").onClick(() => {
+		menu.addItem((item) => item.setTitle(t("menu.remove")).setIcon("x").onClick(() => {
 			editorView.dispatch({ effects: removeRegionEffect.of(regionId) });
 			void this.removeSavedRegion(region.filePath, regionId);
 		}));
@@ -1677,7 +1937,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		await this.migrateSavedData();
 		this.settings = normalizeSettings(this.savedData.settings);
 		this.addSettingTab(new FoldSettingsTab(this.app, this));
-		this.addRibbonIcon("list", "折叠总览", () => {
+		this.addRibbonIcon("list", t("ribbon.overview"), () => {
 			new FoldOverviewModal(this.app, this).open();
 		});
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
@@ -1729,7 +1989,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("editor-menu", (menu, editor) => {
 				menu.addItem((item) => item
-					.setTitle("插入参数选项…")
+					.setTitle(t("menu.insertOptions"))
 					.setIcon("plus")
 					.setSection("action")
 					.onClick(() => this.openParameterSetup(editor)));
@@ -1739,13 +1999,13 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 				setContextRegionId(null);
 				if (registered) {
 					menu.addItem((item) => item
-						.setTitle("编辑参数选项…")
+						.setTitle(t("menu.editOptions"))
 						.setIcon("pencil")
 						.setSection("action")
 						.onClick(() => this.openParameterSetup(editor, registered.region)));
 					menu.addItem((item) =>
 						item
-							.setTitle(registered.expanded ? "收起参数内容" : "展开参数内容")
+							.setTitle(registered.expanded ? t("menu.collapse") : t("menu.expand"))
 							.setIcon(registered.expanded ? "fold-vertical" : "unfold-vertical")
 							.setSection("action")
 							.onClick(() => {
@@ -1759,14 +2019,11 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 								);
 							}),
 					);
-					for (const mode of [
-						{ value: "standard", title: "显示方式：普通折叠" },
-						{ value: "options", title: "显示方式：选项悬浮弹窗" },
-					]) {
+					for (const mode of displayModes()) {
 						const current = registered.region.displayMode === mode.value;
 						menu.addItem((item) => {
 							item
-								.setTitle(`${mode.title}${current ? "（当前）" : ""}`)
+								.setTitle(`${mode.title}${current ? t("menu.modeCurrent") : ""}`)
 								.setIcon(current ? "check" : mode.value === "options" ? "list" : "minus")
 								.setSection("action");
 							if (!current) {
@@ -1775,7 +2032,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 										mode.value === "options" &&
 										!parseParameterOptions(registered.region.expression).length
 									) {
-										new Notice("没有找到可显示的参数选项");
+										new Notice(t("notice.noOptions"));
 										return;
 									}
 									registered.editorView.dispatch({
@@ -1795,7 +2052,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 					}
 					menu.addItem((item) =>
 						item
-							.setTitle("取消参数折叠")
+							.setTitle(t("menu.remove"))
 							.setIcon("x")
 							.setSection("action")
 							.onClick(() => {
@@ -1814,7 +2071,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 				if (parseSelectedParameter(editor)) {
 					menu.addItem((item) =>
 						item
-							.setTitle("折叠选中参数")
+							.setTitle(t("menu.foldSelection"))
 							.setIcon("fold-vertical")
 							.setSection("action")
 							.onClick(() => registerSelectedParameter(editor)),
@@ -1825,7 +2082,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 		this.addCommand({
 			id: "fold-selected-parameter",
-			name: "折叠选中的参数内容",
+			name: t("cmd.foldSelection"),
 			editorCheckCallback: (checking, editor) => {
 				const available = Boolean(parseSelectedParameter(editor));
 				if (available && !checking) registerSelectedParameter(editor);
@@ -1835,7 +2092,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-fold-overview",
-			name: "打开折叠总览",
+			name: t("cmd.overview"),
 			callback: () => {
 				new FoldOverviewModal(this.app, this).open();
 			},
@@ -1843,7 +2100,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 		this.addCommand({
 			id: "remove-parameter-fold-at-cursor",
-			name: "取消光标处的参数折叠",
+			name: t("cmd.removeAtCursor"),
 			editorCheckCallback: (checking, editor) => {
 				const registered = findRegisteredRegionAtCursor(editor);
 				if (registered && !checking) {

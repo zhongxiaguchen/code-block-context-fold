@@ -12,6 +12,15 @@
  * `_`、`=`、括号以外的符号；只有方括号仍然是结构字符。
  */
 
+const { t } = require("../i18n");
+
+/** 报错文案随界面语言变化，code 保持不变，便于调用方和测试按类型判断。 */
+function fail(code) {
+	const error = new Error(t(`error.${code}`));
+	error.code = code;
+	return error;
+}
+
 function parseParameterOptions(expression) {
 	const bracketFrom = expression.indexOf("[");
 	if (bracketFrom < 0 || !expression.endsWith("]")) return [];
@@ -31,18 +40,18 @@ function parseParameterOptions(expression) {
 
 function serializeParameterOptions(label, options) {
 	label = String(label || "").trim();
-	if (!label) throw new Error("请填写参数名称");
-	if (/[\r\n\[\]]/.test(label)) throw new Error("参数名称不能包含换行或方括号");
-	if (!options.length) throw new Error("请至少添加一个选项");
+	if (!label) throw fail("nameRequired");
+	if (/[\r\n\[\]]/.test(label)) throw fail("nameInvalid");
+	if (!options.length) throw fail("optionsRequired");
 
 	const parts = options.map((option) => {
 		const value = String(option.value || "").trim();
 		// 注释允许换行输入，但落盘时压成一行——换行现在是选项分隔符
 		const comment = String(option.comment || "").replace(/\s+/g, " ").trim();
-		if (!value) throw new Error("每个选项都需要填写名称");
-		if (/[\r\n\[\]]/.test(value)) throw new Error("选项名称不能包含换行或方括号");
-		if (value.includes("//")) throw new Error("选项名称不能包含 //，它会被当成注释起点");
-		if (/[\[\]]/.test(comment)) throw new Error("注释不能包含方括号");
+		if (!value) throw fail("valueRequired");
+		if (/[\r\n\[\]]/.test(value)) throw fail("valueInvalid");
+		if (value.includes("//")) throw fail("valueSlash");
+		if (/[\[\]]/.test(comment)) throw fail("commentInvalid");
 		return "  " + value + (comment ? "//" + comment : "");
 	});
 

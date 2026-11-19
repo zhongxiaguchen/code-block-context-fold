@@ -3,6 +3,7 @@ const { parseSelectedParameter } = require("../editor/selection");
 const { parameterFoldField, addRegionEffect } = require("../editor/decorations");
 const { createRegionId } = require("../util/id");
 const { getActivePlugin } = require("../state");
+const { t } = require("../i18n");
 
 /**
  * 把当前选区登记成一个折叠区域（不改动文本）。
@@ -10,7 +11,7 @@ const { getActivePlugin } = require("../state");
 function registerSelectedParameter(editor) {
 	const parsedRegion = parseSelectedParameter(editor);
 	if (!parsedRegion) {
-		new Notice("请在同一个代码块内选中完整的“参数[内容]”，支持多行");
+		new Notice(t("notice.selectionInvalid"));
 		return false;
 	}
 	const plugin = getActivePlugin();
@@ -24,7 +25,7 @@ function registerSelectedParameter(editor) {
 
 	const editorView = editor.cm;
 	if (!editorView) {
-		new Notice("当前编辑器不支持参数折叠");
+		new Notice(t("notice.noEditor"));
 		return false;
 	}
 

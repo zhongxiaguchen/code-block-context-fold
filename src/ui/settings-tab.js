@@ -1,5 +1,6 @@
 const { PluginSettingTab, Setting } = require("obsidian");
 const FoldOverviewModal = require("./overview-modal");
+const { t } = require("../i18n");
 
 /**
  * 设置页：两个行为开关，外加入口。
@@ -15,12 +16,12 @@ class FoldSettingsTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName("默认显示方式")
-			.setDesc("新折叠的项目用哪种形态；已有项目可在标签上右键单独切换。")
+			.setName(t("settings.defaultMode.name"))
+			.setDesc(t("settings.defaultMode.desc"))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("standard", "普通折叠（点标签展开）")
-					.addOption("options", "选项悬浮弹窗（悬停看选项）")
+					.addOption("standard", t("settings.modeStandard"))
+					.addOption("options", t("settings.modeOptions"))
 					.setValue(this.plugin.settings.defaultDisplayMode)
 					.onChange(async (value) => {
 						this.plugin.settings.defaultDisplayMode = value;
@@ -29,8 +30,8 @@ class FoldSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("阅读视图也折叠")
-			.setDesc("关闭后只在编辑视图生效，阅读视图和导出 PDF 保持原文。")
+			.setName(t("settings.reading.name"))
+			.setDesc(t("settings.reading.desc"))
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.readingView).onChange(async (value) => {
 					this.plugin.settings.readingView = value;
@@ -39,16 +40,16 @@ class FoldSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("折叠总览")
-			.setDesc("查看本库所有折叠、跳到对应笔记，以及清理已失效的记录。")
+			.setName(t("settings.overview.name"))
+			.setDesc(t("settings.overview.desc"))
 			.addButton((button) =>
-				button.setButtonText("打开").onClick(() => {
+				button.setButtonText(t("settings.overview.open")).onClick(() => {
 					new FoldOverviewModal(this.app, this.plugin).open();
 				}),
 			);
 
 		containerEl.createEl("p", {
-			text: "折叠记录保存在本插件目录的 data.json 里，含笔记路径与正文片段，请勿分享该文件。",
+			text: t("settings.privacy"),
 			cls: "setting-item-description",
 		});
 	}

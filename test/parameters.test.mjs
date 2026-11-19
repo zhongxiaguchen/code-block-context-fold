@@ -37,12 +37,23 @@ test("注释里的换行会被压成一行", () => {
 });
 
 test("方括号与 // 仍然受限制", () => {
-	assert.throws(() => serializeParameterOptions("a[b", [{ value: "x", comment: "" }]), /方括号/);
-	assert.throws(() => serializeParameterOptions("名称", [{ value: "x]y", comment: "" }]), /方括号/);
-	assert.throws(() => serializeParameterOptions("名称", [{ value: "a//b", comment: "" }]), /\/\//);
-	assert.throws(() => serializeParameterOptions("名称", [{ value: "x", comment: "[注]" }]), /方括号/);
-	assert.throws(() => serializeParameterOptions("名称", []), /至少添加一个选项/);
-	assert.throws(() => serializeParameterOptions("  ", [{ value: "x", comment: "" }]), /参数名称/);
+	// 报错文案随界面语言变化，断言用稳定的 error.code
+	const codeOf = (fn) => {
+		try {
+			fn();
+			return null;
+		} catch (error) {
+			return error.code;
+		}
+	};
+
+	assert.equal(codeOf(() => serializeParameterOptions("a[b", [{ value: "x", comment: "" }])), "nameInvalid");
+	assert.equal(codeOf(() => serializeParameterOptions("名称", [{ value: "x]y", comment: "" }])), "valueInvalid");
+	assert.equal(codeOf(() => serializeParameterOptions("名称", [{ value: "a//b", comment: "" }])), "valueSlash");
+	assert.equal(codeOf(() => serializeParameterOptions("名称", [{ value: "x", comment: "[注]" }])), "commentInvalid");
+	assert.equal(codeOf(() => serializeParameterOptions("名称", [])), "optionsRequired");
+	assert.equal(codeOf(() => serializeParameterOptions("  ", [{ value: "x", comment: "" }])), "nameRequired");
+	assert.equal(codeOf(() => serializeParameterOptions("名称", [{ value: "", comment: "" }])), "valueRequired");
 });
 
 test("不是合法表达式的文本解析为空列表", () => {

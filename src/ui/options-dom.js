@@ -1,10 +1,11 @@
 const { parseParameterOptions } = require("../format/parameters");
+const { t } = require("../i18n");
 
 /**
  * 「参数 ▾」药丸 + 选项悬浮面板的 DOM。
  * 编辑器里的 Widget 和阅读视图的后期渲染共用同一份结构，样式与交互只维护一次。
  */
-function createOptionsElement(region, { hint = `${region.label}：悬浮查看选项，右键展开原文` } = {}) {
+function createOptionsElement(region, { hint = t("a11y.optionsEditor", { label: region.label }) } = {}) {
 	const root = document.createElement("span");
 	root.className = "inline-code-fold-options";
 
@@ -33,7 +34,7 @@ function createOptionsElement(region, { hint = `${region.label}：悬浮查看�
 
 		const comment = document.createElement("span");
 		comment.className = "inline-code-fold-option-comment";
-		comment.textContent = option.comment || "暂无注释";
+		comment.textContent = option.comment || t("options.noComment");
 		row.appendChild(comment);
 		panel.appendChild(row);
 	}

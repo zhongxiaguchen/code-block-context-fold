@@ -19,6 +19,7 @@ const { ParameterSetupModal } = require("./ui/setup-modal");
 const FoldSettingsTab = require("./ui/settings-tab");
 const FoldOverviewModal = require("./ui/overview-modal");
 const { normalizeSettings } = require("./settings/defaults");
+const { t } = require("./i18n");
 const { applyReadingRegions } = require("./reading/render");
 const { createTextSurface, resolveReadingRegions, findRenderedBlock } = require("./reading/source");
 const {
@@ -34,6 +35,14 @@ const {
 } = require("./state");
 
 const DATA_SCHEMA_VERSION = 3;
+
+/** 两种显示方式的菜单项，文案随界面语言变化。 */
+function displayModes() {
+	return [
+		{ value: "standard", title: t("menu.modeStandard") },
+		{ value: "options", title: t("menu.modeOptions") },
+	];
+}
 
 module.exports = class CodeParameterFoldPlugin extends Plugin {
 	openParameterSetup(editor, existing = null) {
@@ -52,7 +61,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		} : null;
 		new ParameterSetupModal(this.app, initial, async (expression, label) => {
 			if (editor.getValue() !== snapshot || this.app.workspace.getActiveFile()?.path !== filePath) {
-				throw new Error("笔记内容或当前文件已变化，请重新右键打开设置");
+				throw new Error(t("notice.contentChanged"));
 			}
 			const fence = String.fromCharCode(96).repeat(3);
 			const prefix = insideBlock ? "" : (position.ch > 0 ? "\n" : "") + fence + "text\n";
@@ -83,31 +92,28 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		if (!region) return;
 		const expanded = field.expanded.has(regionId);
 		const menu = new Menu(this.app);
-		menu.addItem((item) => item.setTitle("插入参数选项…").setIcon("plus").onClick(() => {
+		menu.addItem((item) => item.setTitle(t("menu.insertOptions")).setIcon("plus").onClick(() => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (view?.editor?.cm === editorView) this.openParameterSetup(view.editor);
 		}));
-		menu.addItem((item) => item.setTitle("编辑参数选项…").setIcon("pencil").onClick(() => {
+		menu.addItem((item) => item.setTitle(t("menu.editOptions")).setIcon("pencil").onClick(() => {
 			const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (view?.editor?.cm === editorView) this.openParameterSetup(view.editor, region);
 		}));
 		menu.addItem((item) => item
-			.setTitle(expanded ? "收起参数内容" : "展开参数内容")
+			.setTitle(expanded ? t("menu.collapse") : t("menu.expand"))
 			.setIcon(expanded ? "fold-vertical" : "unfold-vertical")
 			.onClick(() => {
 				editorView.dispatch({ effects: toggleRegionEffect.of(regionId) });
 				void this.setRegionExpanded(region.filePath, regionId, !expanded);
 			}));
-		for (const mode of [
-			{ value: "standard", title: "显示方式：普通折叠" },
-			{ value: "options", title: "显示方式：选项悬浮弹窗" },
-		]) {
+		for (const mode of displayModes()) {
 			menu.addItem((item) => item
-				.setTitle(`${mode.title}${region.displayMode === mode.value ? "（当前）" : ""}`)
+				.setTitle(`${mode.title}${region.displayMode === mode.value ? t("menu.modeCurrent") : ""}`)
 				.setIcon(region.displayMode === mode.value ? "check" : "list")
 				.onClick(() => {
 					if (mode.value === "options" && !parseParameterOptions(region.expression).length) {
-						new Notice("没有找到可显示的参数选项");
+						new Notice(t("notice.noOptions"));
 						return;
 					}
 					editorView.dispatch({ effects: setRegionDisplayModeEffect.of({
@@ -116,7 +122,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 					void this.setRegionDisplayMode(region.filePath, regionId, mode.value);
 				}));
 		}
-		menu.addItem((item) => item.setTitle("取消参数折叠").setIcon("x").onClick(() => {
+		menu.addItem((item) => item.setTitle(t("menu.remove")).setIcon("x").onClick(() => {
 			editorView.dispatch({ effects: removeRegionEffect.of(regionId) });
 			void this.removeSavedRegion(region.filePath, regionId);
 		}));
@@ -133,7 +139,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		await this.migrateSavedData();
 		this.settings = normalizeSettings(this.savedData.settings);
 		this.addSettingTab(new FoldSettingsTab(this.app, this));
-		this.addRibbonIcon("list", "折叠总览", () => {
+		this.addRibbonIcon("list", t("ribbon.overview"), () => {
 			new FoldOverviewModal(this.app, this).open();
 		});
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
@@ -185,7 +191,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("editor-menu", (menu, editor) => {
 				menu.addItem((item) => item
-					.setTitle("插入参数选项…")
+					.setTitle(t("menu.insertOptions"))
 					.setIcon("plus")
 					.setSection("action")
 					.onClick(() => this.openParameterSetup(editor)));
@@ -195,13 +201,13 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 				setContextRegionId(null);
 				if (registered) {
 					menu.addItem((item) => item
-						.setTitle("编辑参数选项…")
+						.setTitle(t("menu.editOptions"))
 						.setIcon("pencil")
 						.setSection("action")
 						.onClick(() => this.openParameterSetup(editor, registered.region)));
 					menu.addItem((item) =>
 						item
-							.setTitle(registered.expanded ? "收起参数内容" : "展开参数内容")
+							.setTitle(registered.expanded ? t("menu.collapse") : t("menu.expand"))
 							.setIcon(registered.expanded ? "fold-vertical" : "unfold-vertical")
 							.setSection("action")
 							.onClick(() => {
@@ -215,14 +221,11 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 								);
 							}),
 					);
-					for (const mode of [
-						{ value: "standard", title: "显示方式：普通折叠" },
-						{ value: "options", title: "显示方式：选项悬浮弹窗" },
-					]) {
+					for (const mode of displayModes()) {
 						const current = registered.region.displayMode === mode.value;
 						menu.addItem((item) => {
 							item
-								.setTitle(`${mode.title}${current ? "（当前）" : ""}`)
+								.setTitle(`${mode.title}${current ? t("menu.modeCurrent") : ""}`)
 								.setIcon(current ? "check" : mode.value === "options" ? "list" : "minus")
 								.setSection("action");
 							if (!current) {
@@ -231,7 +234,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 										mode.value === "options" &&
 										!parseParameterOptions(registered.region.expression).length
 									) {
-										new Notice("没有找到可显示的参数选项");
+										new Notice(t("notice.noOptions"));
 										return;
 									}
 									registered.editorView.dispatch({
@@ -251,7 +254,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 					}
 					menu.addItem((item) =>
 						item
-							.setTitle("取消参数折叠")
+							.setTitle(t("menu.remove"))
 							.setIcon("x")
 							.setSection("action")
 							.onClick(() => {
@@ -270,7 +273,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 				if (parseSelectedParameter(editor)) {
 					menu.addItem((item) =>
 						item
-							.setTitle("折叠选中参数")
+							.setTitle(t("menu.foldSelection"))
 							.setIcon("fold-vertical")
 							.setSection("action")
 							.onClick(() => registerSelectedParameter(editor)),
@@ -281,7 +284,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 		this.addCommand({
 			id: "fold-selected-parameter",
-			name: "折叠选中的参数内容",
+			name: t("cmd.foldSelection"),
 			editorCheckCallback: (checking, editor) => {
 				const available = Boolean(parseSelectedParameter(editor));
 				if (available && !checking) registerSelectedParameter(editor);
@@ -291,7 +294,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-fold-overview",
-			name: "打开折叠总览",
+			name: t("cmd.overview"),
 			callback: () => {
 				new FoldOverviewModal(this.app, this).open();
 			},
@@ -299,7 +302,7 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 		this.addCommand({
 			id: "remove-parameter-fold-at-cursor",
-			name: "取消光标处的参数折叠",
+			name: t("cmd.removeAtCursor"),
 			editorCheckCallback: (checking, editor) => {
 				const registered = findRegisteredRegionAtCursor(editor);
 				if (registered && !checking) {
