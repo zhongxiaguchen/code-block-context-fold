@@ -121,3 +121,16 @@
 .inline-code-fold-option-comment {
   white-space: pre-wrap;
 }
+
+/* 阅读视图与导出：折叠标签 + 藏在后面的原文 */
+.inline-code-fold-reading {
+  white-space: pre;
+}
+
+.inline-code-fold-content {
+  color: var(--text-muted);
+}
+
+.inline-code-fold-content[hidden] {
+  display: none;
+}

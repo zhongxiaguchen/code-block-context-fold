@@ -34,22 +34,22 @@ npm run release
 
 ```bash
 git add -A
-git commit -m "release: 2.6.0"
-git tag 2.6.0
+git commit -m "release: 2.7.0"
+git tag 2.7.0
 git push origin main --tags
 ```
 
 **tag 必须和 `manifest.json` 里的 `version` 完全一致，且不要加 `v` 前缀。**
-Obsidian 按 tag 名找对应版本的 manifest，`v2.6.0` 会被当成找不到。
+Obsidian 按 tag 名找对应版本的 manifest，`v2.7.0` 会被当成找不到。
 
 ## 4. 建 GitHub Release
 
 ```bash
-gh release create 2.6.0 --title "代码块参数折叠 2.6.0" --notes-file RELEASE_NOTES.md \
-  manifest.json main.js styles.css dist/code-block-context-fold-2.6.0.zip
+gh release create 2.7.0 --title "代码块参数折叠 2.7.0" --notes-file RELEASE_NOTES.md \
+  manifest.json main.js styles.css dist/code-block-context-fold-2.7.0.zip
 ```
 
-没有 `gh` 就在网页上建：tag 选 `2.6.0`，标题随意，正文贴 `RELEASE_NOTES.md`，
+没有 `gh` 就在网页上建：tag 选 `2.7.0`，标题随意，正文贴 `RELEASE_NOTES.md`，
 **四个附件**：`manifest.json`、`main.js`、`styles.css`、zip。
 
 三个文件是硬要求——Obsidian 只认 Release 里的这三个资产，缺 `main.js` 就装不上。
@@ -58,7 +58,8 @@ gh release create 2.6.0 --title "代码块参数折叠 2.6.0" --notes-file RELEA
 
 - 在一个**空库**里手动安装一遍：三个文件 → 启用 → 选中一段 `参数[内容]` → 右键折叠。
 - 重开笔记，确认折叠位置能恢复。
-- 用 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 添加 `zhongxiaguchen/Obsidian_Plugin`，
+- 切到阅读视图，确认折叠同样生效、点击能展开。
+- 用 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 添加 `zhongxiaguchen/code-block-context-fold`，
   确认能从 Release 装成功（这条最接近真实用户路径）。
 
 ## 6. 提交到社区插件列表（可选，但“发布出去”通常指这个）
@@ -72,7 +73,7 @@ gh release create 2.6.0 --title "代码块参数折叠 2.6.0" --notes-file RELEA
      "name": "代码块参数折叠",
      "author": "Zonvon",
      "description": "把代码块里的“参数[内容]”折叠成可点击的标签，也可切换成悬浮显示选项与注释的弹窗。",
-     "repo": "zhongxiaguchen/Obsidian_Plugin"
+     "repo": "zhongxiaguchen/code-block-context-fold"
    }
    ```
 
@@ -85,5 +86,5 @@ gh release create 2.6.0 --title "代码块参数折叠 2.6.0" --notes-file RELEA
 - **忘了提交构建后的 `main.js`** → Release 里的 `main.js` 和仓库不一致，用户看到的和源码对不上。
 - **把 `data.json` 提交了** → 泄露你自己的笔记路径和正文片段。仓库 `.gitignore` 已挡住，别手动 `git add -f`。
 - **一个仓库塞多个插件** → 社区列表只认仓库根目录的那一份 `manifest.json`，第二个插件必须换仓库。
-- **仓库名和插件 id 不一致**（当前就是：仓库叫 `Obsidian_Plugin`，id 是 `code-block-context-fold`）
-  → 能发布，但用户在 BRAT 里看到的名字会比较迷惑；以后想改名建议改仓库而不是改 id，id 一改老用户的折叠记录就找不到了。
+- **仓库名和插件 id 不一致** → 能发布，但用户在 BRAT 里看到的名字会比较迷惑。本仓库已改名为
+  `code-block-context-fold`，与 id 对齐；以后想改名建议改仓库而不是改 id，id 一改老用户的折叠记录就找不到了。

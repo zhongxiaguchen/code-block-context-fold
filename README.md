@@ -6,7 +6,7 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/Obsidian_Plugin>　·　最新版本：2.6.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：2.7.0
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -16,14 +16,15 @@
 - **选项悬浮弹窗**：折叠成一个药丸状的 `参数 ▾`，鼠标移上去浮出选项列表，再移到某个选项上浮出它的注释。
 - **右键菜单**：在标签上右键即可编辑选项、切换显示方式、展开或取消折叠。
 - **命令面板**：`折叠选中的参数内容`、`取消光标处的参数折叠`。
+- **编辑视图和阅读视图都生效**：切到阅读视图、导出 PDF 时折叠依然保留，标签可以点击展开。
 - **记录跟着笔记走**：折叠位置写进插件数据，重开笔记自动恢复；笔记重命名时记录跟着迁移。
 
 ## 安装
 
 ### 手动安装（任意库通用）
 
-1. 从 [Releases](https://github.com/zhongxiaguchen/Obsidian_Plugin/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-2.6.0.zip` 解压）。
+1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-2.7.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
@@ -79,7 +80,8 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 ## 已知限制
 
-- **只在编辑视图生效**。阅读视图和导出 PDF 里仍然是原始文本，插件目前没有实现 `registerMarkdownPostProcessor`。
+- **阅读视图的展开状态是一次性的**：在阅读视图里点开标签只影响当前渲染，不会写回编辑视图；编辑视图以插件数据里记录的展开状态为准。
+- **阅读视图按记录里保存的原文精确匹配**。如果笔记内容被改动过、而编辑视图还没重新打开同步记录，那一段在阅读视图里会保持原样，不会折叠。
 - `_` 与 `[ ]` 属于结构字符，不能出现在参数名、选项名或注释里。
 - 笔记被改动后，插件靠锚点重新定位折叠位置；当同一段文本出现多次且锚点无法区分时，它会放弃恢复而不是猜一个位置。
 
@@ -109,8 +111,11 @@ src/
   editor/anchor.js        锚点采集
   editor/recover.js       重开笔记时的位置复原
   editor/decorations.js   CodeMirror StateField、装饰、鼠标交互
+  editor/text-range.js    跨文本节点的区间定位（阅读视图用）
+  reading/render.js       阅读视图 / 导出时的折叠渲染
   format/parameters.js    参数表达式解析与序列化
-  ui/options-widget.js    选项悬浮弹窗
+  ui/options-dom.js       选项药丸与悬浮面板的 DOM（编辑器与阅读视图共用）
+  ui/options-widget.js    选项弹窗的 CodeMirror 组件封装
   ui/setup-modal.js       参数选项编辑弹窗
   util/{id,text}.js       小工具
 scripts/

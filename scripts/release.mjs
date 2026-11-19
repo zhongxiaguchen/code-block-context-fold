@@ -50,7 +50,14 @@ if (!skipTests) {
 	try {
 		execFileSync(
 			process.execPath,
-			["--test", "--test-isolation=none", "test/parameters.test.mjs", "test/selection.test.mjs", "test/bundle.test.mjs"],
+			[
+				"--test",
+				"--test-isolation=none",
+				"test/parameters.test.mjs",
+				"test/selection.test.mjs",
+				"test/text-range.test.mjs",
+				"test/bundle.test.mjs",
+			],
 			{ cwd: repoRoot, stdio: "inherit" },
 		);
 	} catch {

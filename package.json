@@ -1,13 +1,13 @@
 {
   "name": "code-block-context-fold",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "把代码块里的“参数[内容]”折叠成可点击的标签或选项悬浮弹窗。",
   "private": true,
   "license": "GPL-3.0-or-later",
   "author": "Zonvon",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zhongxiaguchen/Obsidian_Plugin.git"
+    "url": "git+https://github.com/zhongxiaguchen/code-block-context-fold.git"
   },
   "engines": {
     "node": ">=22.8"

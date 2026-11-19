@@ -57,19 +57,119 @@ function serializeParameterOptions(label, options) {
 
 module.exports = { parseParameterOptions, serializeParameterOptions };
 };
-__modules["./src/ui/options-widget.js"] = function (module, exports, __require) {
-const { WidgetType } = require("@codemirror/view");
+__modules["./src/ui/options-dom.js"] = function (module, exports, __require) {
 const { parseParameterOptions } = __require("./src/format/parameters.js");
 
 /**
- * 「选项悬浮弹窗」显示方式用的内联组件：
- * 折叠状态渲染成 `参数名 ▾` 药丸，悬停浮出选项列表，选项悬停浮出注释。
+ * 「参数 ▾」药丸 + 选项悬浮面板的 DOM。
+ * 编辑器里的 Widget 和阅读视图的后期渲染共用同一份结构，样式与交互只维护一次。
+ */
+function createOptionsElement(region, { hint = `${region.label}：悬浮查看选项，右键展开原文` } = {}) {
+	const root = document.createElement("span");
+	root.className = "inline-code-fold-options";
+
+	const label = document.createElement("span");
+	label.className = "inline-code-fold-label inline-code-fold-label--options";
+	label.setAttribute("data-inline-code-fold-id", region.id);
+	label.setAttribute("tabindex", "0");
+	label.setAttribute("aria-label", hint);
+	label.textContent = `${region.label} ▾`;
+	root.appendChild(label);
+
+	const panel = document.createElement("span");
+	panel.className = "inline-code-fold-options-panel";
+	panel.setAttribute("role", "list");
+
+	for (const option of parseParameterOptions(region.expression)) {
+		const row = document.createElement("span");
+		row.className = "inline-code-fold-option";
+		row.setAttribute("role", "listitem");
+		row.setAttribute("tabindex", "0");
+
+		const value = document.createElement("span");
+		value.className = "inline-code-fold-option-value";
+		value.textContent = option.value;
+		row.appendChild(value);
+
+		const comment = document.createElement("span");
+		comment.className = "inline-code-fold-option-comment";
+		comment.textContent = option.comment || "暂无注释";
+		row.appendChild(comment);
+		panel.appendChild(row);
+	}
+
+	let closeTimer = null;
+	const cancelClose = () => window.clearTimeout(closeTimer);
+	const close = () => {
+		cancelClose();
+		panel.remove();
+	};
+	const scheduleClose = () => {
+		cancelClose();
+		closeTimer = window.setTimeout(close, 180);
+	};
+	const open = () => {
+		cancelClose();
+		if (!panel.isConnected) document.body.appendChild(panel);
+		const rect = label.getBoundingClientRect();
+		const panelRect = panel.getBoundingClientRect();
+		panel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panelRect.width - 8))}px`;
+		panel.style.top = `${Math.max(8, rect.bottom + panelRect.height + 8 > window.innerHeight ? rect.top - panelRect.height - 6 : rect.bottom + 6)}px`;
+	};
+	root.addEventListener("mouseenter", open);
+	root.addEventListener("mouseleave", scheduleClose);
+	root.addEventListener("focusin", open);
+	root.addEventListener("focusout", scheduleClose);
+	panel.addEventListener("mouseenter", cancelClose);
+	panel.addEventListener("mouseleave", scheduleClose);
+	panel.addEventListener("focusin", cancelClose);
+	panel.addEventListener("focusout", scheduleClose);
+	const onKeyDown = (event) => {
+		if (event.key === "Escape") close();
+	};
+	root.addEventListener("keydown", onKeyDown);
+	panel.addEventListener("keydown", onKeyDown);
+	for (const row of panel.children) {
+		const positionComment = () => {
+			const comment = row.querySelector(".inline-code-fold-option-comment");
+			const rowRect = row.getBoundingClientRect();
+			const commentRect = comment.getBoundingClientRect();
+			const left = rowRect.right + 10 + commentRect.width <= window.innerWidth - 8
+				? rowRect.right + 10
+				: Math.max(8, rowRect.left - commentRect.width - 10);
+			comment.style.left = `${left}px`;
+			comment.style.top = `${Math.max(8, Math.min(rowRect.top, window.innerHeight - commentRect.height - 8))}px`;
+		};
+		row.addEventListener("mouseenter", positionComment);
+		row.addEventListener("focus", positionComment);
+	}
+	window.addEventListener("resize", close);
+	const onScroll = (event) => {
+		if (!panel.contains(event.target)) close();
+	};
+	window.addEventListener("scroll", onScroll, true);
+	root.cleanupOptionsPopup = () => {
+		close();
+		window.removeEventListener("resize", close);
+		window.removeEventListener("scroll", onScroll, true);
+	};
+	return root;
+}
+
+module.exports = { createOptionsElement };
+};
+__modules["./src/ui/options-widget.js"] = function (module, exports, __require) {
+const { WidgetType } = require("@codemirror/view");
+const { createOptionsElement } = __require("./src/ui/options-dom.js");
+
+/**
+ * 「选项悬浮弹窗」显示方式用的内联组件。
+ * DOM 本身由 options-dom 提供，编辑器与阅读视图共用。
  */
 class ParameterOptionsWidget extends WidgetType {
 	constructor(region) {
 		super();
 		this.region = region;
-		this.options = parseParameterOptions(region.expression);
 	}
 
 	eq(other) {
@@ -81,95 +181,7 @@ class ParameterOptionsWidget extends WidgetType {
 	}
 
 	toDOM() {
-		const root = document.createElement("span");
-		root.className = "inline-code-fold-options";
-
-		const label = document.createElement("span");
-		label.className = "inline-code-fold-label inline-code-fold-label--options";
-		label.setAttribute("data-inline-code-fold-id", this.region.id);
-		label.setAttribute("tabindex", "0");
-		label.setAttribute("aria-label", `${this.region.label}：悬浮查看选项，右键展开原文`);
-		label.textContent = `${this.region.label} ▾`;
-		root.appendChild(label);
-
-		const panel = document.createElement("span");
-		panel.className = "inline-code-fold-options-panel";
-		panel.setAttribute("role", "list");
-
-		for (const option of this.options) {
-			const row = document.createElement("span");
-			row.className = "inline-code-fold-option";
-			row.setAttribute("role", "listitem");
-			row.setAttribute("tabindex", "0");
-
-			const value = document.createElement("span");
-			value.className = "inline-code-fold-option-value";
-			value.textContent = option.value;
-			row.appendChild(value);
-
-			const comment = document.createElement("span");
-			comment.className = "inline-code-fold-option-comment";
-			comment.textContent = option.comment || "暂无注释";
-			row.appendChild(comment);
-			panel.appendChild(row);
-		}
-
-		let closeTimer = null;
-		const cancelClose = () => window.clearTimeout(closeTimer);
-		const close = () => {
-			cancelClose();
-			panel.remove();
-		};
-		const scheduleClose = () => {
-			cancelClose();
-			closeTimer = window.setTimeout(close, 180);
-		};
-		const open = () => {
-			cancelClose();
-			if (!panel.isConnected) document.body.appendChild(panel);
-			const rect = label.getBoundingClientRect();
-			const panelRect = panel.getBoundingClientRect();
-			panel.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - panelRect.width - 8))}px`;
-			panel.style.top = `${Math.max(8, rect.bottom + panelRect.height + 8 > window.innerHeight ? rect.top - panelRect.height - 6 : rect.bottom + 6)}px`;
-		};
-		root.addEventListener("mouseenter", open);
-		root.addEventListener("mouseleave", scheduleClose);
-		root.addEventListener("focusin", open);
-		root.addEventListener("focusout", scheduleClose);
-		panel.addEventListener("mouseenter", cancelClose);
-		panel.addEventListener("mouseleave", scheduleClose);
-		panel.addEventListener("focusin", cancelClose);
-		panel.addEventListener("focusout", scheduleClose);
-		const onKeyDown = (event) => {
-			if (event.key === "Escape") close();
-		};
-		root.addEventListener("keydown", onKeyDown);
-		panel.addEventListener("keydown", onKeyDown);
-		for (const row of panel.children) {
-			const positionComment = () => {
-				const comment = row.querySelector(".inline-code-fold-option-comment");
-				const rowRect = row.getBoundingClientRect();
-				const commentRect = comment.getBoundingClientRect();
-				const left = rowRect.right + 10 + commentRect.width <= window.innerWidth - 8
-					? rowRect.right + 10
-					: Math.max(8, rowRect.left - commentRect.width - 10);
-				comment.style.left = `${left}px`;
-				comment.style.top = `${Math.max(8, Math.min(rowRect.top, window.innerHeight - commentRect.height - 8))}px`;
-			};
-			row.addEventListener("mouseenter", positionComment);
-			row.addEventListener("focus", positionComment);
-		}
-		window.addEventListener("resize", close);
-		const onScroll = (event) => {
-			if (!panel.contains(event.target)) close();
-		};
-		window.addEventListener("scroll", onScroll, true);
-		root.cleanupOptionsPopup = () => {
-			close();
-			window.removeEventListener("resize", close);
-			window.removeEventListener("scroll", onScroll, true);
-		};
-		return root;
+		return createOptionsElement(this.region);
 	}
 
 	destroy(dom) {
@@ -887,6 +899,171 @@ class ParameterSetupModal extends Modal {
 
 module.exports = { ParameterSetupModal };
 };
+__modules["./src/editor/text-range.js"] = function (module, exports, __require) {
+/**
+ * 在「一组文本节点」上定位一个字符区间。
+ *
+ * 阅读视图里，代码块的文本被语法高亮拆成了很多个文本节点，
+ * 一个跨了若干 token 的表达式无法只靠单个节点替换。
+ * 这里只做纯计算：给定各节点长度和全局区间，算出起止落在哪个节点、哪个偏移。
+ * DOM 的实际切分与插入留给调用方，便于单独测试。
+ */
+
+function locateRange(lengths, start, end) {
+	if (!(end > start) || start < 0) return null;
+
+	let offset = 0;
+	let startIndex = -1;
+	let startOffset = 0;
+	let endIndex = -1;
+	let endOffset = 0;
+
+	for (let index = 0; index < lengths.length; index += 1) {
+		const length = lengths[index];
+		if (length === 0) continue;
+
+		if (startIndex < 0 && start >= offset && start < offset + length) {
+			startIndex = index;
+			startOffset = start - offset;
+		}
+		// 区间的末尾是开区间：end 正好落在节点边界时，归属前一个节点
+		if (endIndex < 0 && end > offset && end <= offset + length) {
+			endIndex = index;
+			endOffset = end - offset;
+		}
+
+		offset += length;
+	}
+
+	if (startIndex < 0 || endIndex < 0 || endIndex < startIndex) return null;
+	return { startIndex, startOffset, endIndex, endOffset };
+}
+
+module.exports = { locateRange };
+};
+__modules["./src/reading/render.js"] = function (module, exports, __require) {
+const { parseParameterOptions } = __require("./src/format/parameters.js");
+const { createOptionsElement } = __require("./src/ui/options-dom.js");
+const { locateRange } = __require("./src/editor/text-range.js");
+
+const SHOW_TEXT = 4;
+
+/**
+ * 阅读视图（以及导出 PDF）里的折叠渲染。
+ *
+ * 编辑视图有 CodeMirror 的装饰系统，阅读视图只有已经渲染好的 HTML：
+ * 语法高亮会把代码拆成一堆 <span> 和文本节点，所以这里先在文本节点层面
+ * 定位区间，再就地切开插入标签，尽量不破坏高亮。
+ */
+
+function collectTextNodes(root) {
+	const nodes = [];
+	const walker = document.createTreeWalker(root, SHOW_TEXT);
+	while (walker.nextNode()) nodes.push(walker.currentNode);
+	return nodes;
+}
+
+function replaceRangeInDom(root, start, end, widget) {
+	const nodes = collectTextNodes(root);
+	const plan = locateRange(nodes.map((node) => node.nodeValue.length), start, end);
+	if (!plan) return false;
+
+	const startNode = nodes[plan.startIndex];
+	const endNode = nodes[plan.endIndex];
+	const startValue = startNode.nodeValue;
+	const endValue = endNode.nodeValue;
+	const parent = startNode.parentNode;
+
+	startNode.nodeValue = startValue.slice(0, plan.startOffset);
+	parent.insertBefore(widget, startNode.nextSibling);
+
+	if (plan.startIndex === plan.endIndex) {
+		const tail = endValue.slice(plan.endOffset);
+		if (tail) parent.insertBefore(document.createTextNode(tail), widget.nextSibling);
+	} else {
+		endNode.nodeValue = endValue.slice(plan.endOffset);
+		for (let index = plan.startIndex + 1; index < plan.endIndex; index += 1) {
+			nodes[index].remove();
+		}
+	}
+
+	return true;
+}
+
+function createReadingFold(region) {
+	const wrap = document.createElement("span");
+	wrap.className = "inline-code-fold-reading";
+
+	const options = parseParameterOptions(region.expression);
+	let trigger;
+	if (region.displayMode === "options" && options.length) {
+		trigger = createOptionsElement(region, {
+			hint: `${region.label}：悬浮查看选项，点击展开原文`,
+		});
+	} else {
+		trigger = document.createElement("span");
+		trigger.className = "inline-code-fold-label";
+		trigger.setAttribute("tabindex", "0");
+		trigger.setAttribute("role", "button");
+		trigger.textContent = region.label;
+	}
+
+	const content = document.createElement("span");
+	content.className = "inline-code-fold-content";
+	content.hidden = true;
+	content.textContent = region.expression.slice(region.label.length);
+
+	wrap.append(trigger, content);
+	trigger.addEventListener("click", (event) => {
+		event.preventDefault();
+		content.hidden = !content.hidden;
+	});
+
+	return wrap;
+}
+
+/**
+ * 处理一个已渲染的代码块，返回还没被消费掉的记录。
+ * 同一份记录可能对应文档里的多个代码块，所以逐块传递剩余集合。
+ */
+function decorateReadingCodeBlock(codeElement, records) {
+	const remaining = [];
+
+	for (const record of records) {
+		const expression = record.expression;
+		// 编辑视图里手动展开过的，阅读视图也保持展开
+		if (!expression || record.expanded) {
+			remaining.push(record);
+			continue;
+		}
+
+		const position = codeElement.textContent.indexOf(expression);
+		if (position < 0) {
+			remaining.push(record);
+			continue;
+		}
+
+		const bracketFrom = expression.indexOf("[");
+		const region = {
+			id: record.id,
+			expression,
+			label:
+				record.anchor?.label ||
+				(bracketFrom > 0 ? expression.slice(0, bracketFrom).trimEnd() : expression),
+			displayMode: record.displayMode || "standard",
+		};
+
+		const widget = createReadingFold(region);
+		if (!replaceRangeInDom(codeElement, position, position + expression.length, widget)) {
+			remaining.push(record);
+		}
+	}
+
+	return remaining;
+}
+
+module.exports = { collectTextNodes, replaceRangeInDom, createReadingFold, decorateReadingCodeBlock };
+};
 __modules["./src/plugin/actions.js"] = function (module, exports, __require) {
 const { Notice } = require("obsidian");
 const { parseSelectedParameter } = __require("./src/editor/selection.js");
@@ -984,6 +1161,7 @@ const { selectRecordCandidate } = __require("./src/editor/recover.js");
 const { parseParameterOptions } = __require("./src/format/parameters.js");
 const { createRegionId } = __require("./src/util/id.js");
 const { ParameterSetupModal } = __require("./src/ui/setup-modal.js");
+const { decorateReadingCodeBlock } = __require("./src/reading/render.js");
 const {
 	registerSelectedParameter,
 	findRegisteredRegionAtCursor,
@@ -1094,6 +1272,15 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		);
 		await this.migrateSavedData();
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
+		this.registerMarkdownPostProcessor((element, context) => {
+			const records = this.savedData.foldsByFile[context.sourcePath];
+			if (!records?.length) return;
+			let pending = records;
+			for (const code of element.querySelectorAll("pre > code")) {
+				pending = decorateReadingCodeBlock(code, pending);
+				if (!pending.length) return;
+			}
+		});
 		this.app.workspace.onLayoutReady(() => this.restoreActiveView());
 		this.registerEvent(
 			this.app.workspace.on("file-open", () => {

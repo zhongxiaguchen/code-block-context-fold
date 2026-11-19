@@ -16,6 +16,7 @@ const { selectRecordCandidate } = require("./editor/recover");
 const { parseParameterOptions } = require("./format/parameters");
 const { createRegionId } = require("./util/id");
 const { ParameterSetupModal } = require("./ui/setup-modal");
+const { decorateReadingCodeBlock } = require("./reading/render");
 const {
 	registerSelectedParameter,
 	findRegisteredRegionAtCursor,
@@ -126,6 +127,15 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		);
 		await this.migrateSavedData();
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
+		this.registerMarkdownPostProcessor((element, context) => {
+			const records = this.savedData.foldsByFile[context.sourcePath];
+			if (!records?.length) return;
+			let pending = records;
+			for (const code of element.querySelectorAll("pre > code")) {
+				pending = decorateReadingCodeBlock(code, pending);
+				if (!pending.length) return;
+			}
+		});
 		this.app.workspace.onLayoutReady(() => this.restoreActiveView());
 		this.registerEvent(
 			this.app.workspace.on("file-open", () => {
