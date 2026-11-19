@@ -961,6 +961,9 @@ const SHOW_TEXT = 4;
  * 编辑视图有 CodeMirror 的装饰系统，阅读视图只有已经渲染好的 HTML：
  * 语法高亮会把代码拆成一堆 <span> 和文本节点，所以这里先在文本节点层面
  * 定位区间，再就地切开插入标签，尽量不破坏高亮。
+ *
+ * 「折叠位置应该在哪」不在这里算——它由 reading/source.js 复用编辑视图的
+ * 锚点打分得出，这里只负责把结果画出来。
  */
 
 function collectTextNodes(root) {
@@ -1030,46 +1033,105 @@ function createReadingFold(region) {
 }
 
 /**
- * 处理一个已渲染的代码块，返回还没被消费掉的记录。
- * 同一份记录可能对应文档里的多个代码块，所以逐块传递剩余集合。
+ * 在已经渲染好的代码块里应用若干区间。
+ * 从后往前替换，前面的偏移量就不会因为 DOM 变化而失效。
  */
-function decorateReadingCodeBlock(codeElement, records) {
-	const remaining = [];
-
-	for (const record of records) {
-		const expression = record.expression;
-		// 编辑视图里手动展开过的，阅读视图也保持展开
-		if (!expression || record.expanded) {
-			remaining.push(record);
-			continue;
-		}
-
-		const position = codeElement.textContent.indexOf(expression);
-		if (position < 0) {
-			remaining.push(record);
-			continue;
-		}
-
-		const bracketFrom = expression.indexOf("[");
-		const region = {
-			id: record.id,
-			expression,
-			label:
-				record.anchor?.label ||
-				(bracketFrom > 0 ? expression.slice(0, bracketFrom).trimEnd() : expression),
-			displayMode: record.displayMode || "standard",
-		};
-
+function applyReadingRegions(codeElement, regions) {
+	const ordered = [...regions].sort((left, right) => right.localFrom - left.localFrom);
+	let applied = 0;
+	for (const region of ordered) {
 		const widget = createReadingFold(region);
-		if (!replaceRangeInDom(codeElement, position, position + expression.length, widget)) {
-			remaining.push(record);
+		if (replaceRangeInDom(codeElement, region.localFrom, region.localFrom + region.length, widget)) {
+			applied += 1;
 		}
 	}
-
-	return remaining;
+	return applied;
 }
 
-module.exports = { collectTextNodes, replaceRangeInDom, createReadingFold, decorateReadingCodeBlock };
+module.exports = { collectTextNodes, replaceRangeInDom, createReadingFold, applyReadingRegions };
+};
+__modules["./src/reading/source.js"] = function (module, exports, __require) {
+const { listCodeBlocks } = __require("./src/editor/blocks.js");
+const { selectRecordCandidate } = __require("./src/editor/recover.js");
+
+/**
+ * 阅读视图没有 CodeMirror 编辑器，但折叠位置复原需要「全文 + 代码块列表 + 偏移换算」。
+ * 这里用纯文本拼一个只实现这几个方法的替身，让 selectRecordCandidate 原样复用，
+ * 编辑视图和阅读视图因此共享同一套锚点打分，而不是各自一套匹配规则。
+ */
+function createTextSurface(text) {
+	const lines = text.split("\n");
+	const lineStarts = [];
+	let offset = 0;
+	for (const line of lines) {
+		lineStarts.push(offset);
+		offset += line.length + 1;
+	}
+
+	return {
+		getValue: () => text,
+		lineCount: () => lines.length,
+		getLine: (index) => lines[index] ?? "",
+		posToOffset: ({ line, ch }) => (lineStarts[line] ?? text.length) + ch,
+		offsetToPos: (pos) => {
+			let line = 0;
+			while (line + 1 < lineStarts.length && lineStarts[line + 1] <= pos) line += 1;
+			return { line, ch: pos - lineStarts[line] };
+		},
+	};
+}
+
+/**
+ * 把保存的记录投影成「第几个代码块、块内偏移多少」。
+ * 记录里的 expanded 是编辑视图的展开状态，展开的记录在阅读视图里保持原样。
+ */
+function resolveReadingRegions(surface, blocks, records) {
+	const regions = [];
+
+	for (const record of records) {
+		if (!record.expression || record.expanded) continue;
+		const match = selectRecordCandidate(surface, record, blocks);
+		if (!match) continue;
+
+		const bracketFrom = match.expression.indexOf("[");
+		if (bracketFrom <= 0 || !match.expression.endsWith("]")) continue;
+
+		regions.push({
+			id: record.id,
+			blockIndex: match.block.index,
+			localFrom: match.position - match.block.contentFrom,
+			length: match.expression.length,
+			expression: match.expression,
+			label:
+				record.anchor?.label ||
+				match.expression.slice(0, bracketFrom).trimEnd(),
+			displayMode: record.displayMode || "standard",
+		});
+	}
+
+	return regions;
+}
+
+function normalizeCodeText(value) {
+	return value.replace(/\r\n/g, "\n").replace(/\n+$/, "");
+}
+
+/**
+ * 把渲染出来的 <code> 文本对回源码里的代码块。
+ * 阅读视图拿不到「这是第几个块」，只能按内容比对；对不上就跳过，宁可不折。
+ */
+function findRenderedBlock(blocks, text, codeText) {
+	const target = normalizeCodeText(codeText);
+	if (!target) return null;
+	for (const block of blocks) {
+		if (normalizeCodeText(text.slice(block.contentFrom, block.contentTo)) === target) {
+			return block;
+		}
+	}
+	return null;
+}
+
+module.exports = { createTextSurface, resolveReadingRegions, normalizeCodeText, findRenderedBlock };
 };
 __modules["./src/plugin/actions.js"] = function (module, exports, __require) {
 const { Notice } = require("obsidian");
@@ -1150,7 +1212,7 @@ module.exports = {
 };
 };
 __modules["./src/main.js"] = function (module, exports, __require) {
-const { MarkdownView, Menu, Notice, Plugin } = require("obsidian");
+const { MarkdownView, Menu, Notice, Plugin, TFile } = require("obsidian");
 
 const {
 	addRegionEffect,
@@ -1168,7 +1230,8 @@ const { selectRecordCandidate } = __require("./src/editor/recover.js");
 const { parseParameterOptions } = __require("./src/format/parameters.js");
 const { createRegionId } = __require("./src/util/id.js");
 const { ParameterSetupModal } = __require("./src/ui/setup-modal.js");
-const { decorateReadingCodeBlock } = __require("./src/reading/render.js");
+const { applyReadingRegions } = __require("./src/reading/render.js");
+const { createTextSurface, resolveReadingRegions, findRenderedBlock } = __require("./src/reading/source.js");
 const {
 	registerSelectedParameter,
 	findRegisteredRegionAtCursor,
@@ -1273,19 +1336,33 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 	async onload() {
 		setActivePlugin(this);
+		this.readingSourceCache = new Map();
 		this.savedData = Object.assign(
 			{ schemaVersion: DATA_SCHEMA_VERSION, foldsByFile: {} },
 			(await this.loadData()) || {},
 		);
 		await this.migrateSavedData();
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
-		this.registerMarkdownPostProcessor((element, context) => {
+		// 阅读视图：把保存的记录按锚点投影到渲染后的代码块上，与编辑视图同一套匹配
+		this.registerMarkdownPostProcessor(async (element, context) => {
 			const records = this.savedData.foldsByFile[context.sourcePath];
 			if (!records?.length) return;
-			let pending = records;
-			for (const code of element.querySelectorAll("pre > code")) {
-				pending = decorateReadingCodeBlock(code, pending);
-				if (!pending.length) return;
+			const codes = element.querySelectorAll("pre > code");
+			if (!codes.length) return;
+
+			const source = await this.getReadingSource(context.sourcePath);
+			if (!source) return;
+
+			const regions = resolveReadingRegions(source.surface, source.blocks, records);
+			if (!regions.length) return;
+
+			const used = new Set();
+			for (const code of codes) {
+				const block = findRenderedBlock(source.blocks, source.text, code.textContent);
+				if (!block || used.has(block.index)) continue;
+				used.add(block.index);
+				const forBlock = regions.filter((region) => region.blockIndex === block.index);
+				if (forBlock.length) applyReadingRegions(code, forBlock);
 			}
 		});
 		this.app.workspace.onLayoutReady(() => this.restoreActiveView());
@@ -1296,11 +1373,17 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		);
 		this.registerEvent(
 			this.app.vault.on("rename", async (file, oldPath) => {
+				this.readingSourceCache.delete(oldPath);
 				const records = this.savedData.foldsByFile[oldPath];
 				if (!records) return;
 				delete this.savedData.foldsByFile[oldPath];
 				this.savedData.foldsByFile[file.path] = records;
 				await this.saveData(this.savedData);
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on("modify", (file) => {
+				this.readingSourceCache.delete(file.path);
 			}),
 		);
 
@@ -1428,6 +1511,24 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 				return Boolean(registered);
 			},
 		});
+	}
+
+	/**
+	 * 阅读视图要拿到「源码全文」，才能像编辑视图那样按锚点打分定位。
+	 * 一次渲染里同一篇笔记的多个代码块共享这份快照；文件改动时缓存失效。
+	 */
+	async getReadingSource(path) {
+		const cached = this.readingSourceCache.get(path);
+		if (cached) return cached;
+
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) return null;
+
+		const text = await this.app.vault.cachedRead(file);
+		const surface = createTextSurface(text);
+		const entry = { text, surface, blocks: listCodeBlocks(surface) };
+		this.readingSourceCache.set(path, entry);
+		return entry;
 	}
 
 	async migrateSavedData() {

@@ -10,6 +10,9 @@ const SHOW_TEXT = 4;
  * 编辑视图有 CodeMirror 的装饰系统，阅读视图只有已经渲染好的 HTML：
  * 语法高亮会把代码拆成一堆 <span> 和文本节点，所以这里先在文本节点层面
  * 定位区间，再就地切开插入标签，尽量不破坏高亮。
+ *
+ * 「折叠位置应该在哪」不在这里算——它由 reading/source.js 复用编辑视图的
+ * 锚点打分得出，这里只负责把结果画出来。
  */
 
 function collectTextNodes(root) {
@@ -79,43 +82,19 @@ function createReadingFold(region) {
 }
 
 /**
- * 处理一个已渲染的代码块，返回还没被消费掉的记录。
- * 同一份记录可能对应文档里的多个代码块，所以逐块传递剩余集合。
+ * 在已经渲染好的代码块里应用若干区间。
+ * 从后往前替换，前面的偏移量就不会因为 DOM 变化而失效。
  */
-function decorateReadingCodeBlock(codeElement, records) {
-	const remaining = [];
-
-	for (const record of records) {
-		const expression = record.expression;
-		// 编辑视图里手动展开过的，阅读视图也保持展开
-		if (!expression || record.expanded) {
-			remaining.push(record);
-			continue;
-		}
-
-		const position = codeElement.textContent.indexOf(expression);
-		if (position < 0) {
-			remaining.push(record);
-			continue;
-		}
-
-		const bracketFrom = expression.indexOf("[");
-		const region = {
-			id: record.id,
-			expression,
-			label:
-				record.anchor?.label ||
-				(bracketFrom > 0 ? expression.slice(0, bracketFrom).trimEnd() : expression),
-			displayMode: record.displayMode || "standard",
-		};
-
+function applyReadingRegions(codeElement, regions) {
+	const ordered = [...regions].sort((left, right) => right.localFrom - left.localFrom);
+	let applied = 0;
+	for (const region of ordered) {
 		const widget = createReadingFold(region);
-		if (!replaceRangeInDom(codeElement, position, position + expression.length, widget)) {
-			remaining.push(record);
+		if (replaceRangeInDom(codeElement, region.localFrom, region.localFrom + region.length, widget)) {
+			applied += 1;
 		}
 	}
-
-	return remaining;
+	return applied;
 }
 
-module.exports = { collectTextNodes, replaceRangeInDom, createReadingFold, decorateReadingCodeBlock };
+module.exports = { collectTextNodes, replaceRangeInDom, createReadingFold, applyReadingRegions };

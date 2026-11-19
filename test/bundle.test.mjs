@@ -35,6 +35,7 @@ function createMocks() {
 		showAtMouseEvent() {}
 	}
 	class Notice {}
+	class TFile {}
 
 	class StateEffect {}
 	StateEffect.define = () => class DefinedEffect extends StateEffect {};
@@ -57,7 +58,7 @@ function createMocks() {
 	EditorView.decorations = { compute: (_deps, fn) => ({ compute: fn }) };
 
 	return {
-		obsidian: { Plugin, Modal, Menu, Notice, MarkdownView: class {} },
+		obsidian: { Plugin, Modal, Menu, Notice, MarkdownView: class {}, TFile },
 		"@codemirror/state": { StateEffect, StateField },
 		"@codemirror/view": { Decoration, EditorView, WidgetType },
 	};

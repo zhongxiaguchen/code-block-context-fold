@@ -1,4 +1,4 @@
-const { MarkdownView, Menu, Notice, Plugin } = require("obsidian");
+const { MarkdownView, Menu, Notice, Plugin, TFile } = require("obsidian");
 
 const {
 	addRegionEffect,
@@ -16,7 +16,8 @@ const { selectRecordCandidate } = require("./editor/recover");
 const { parseParameterOptions } = require("./format/parameters");
 const { createRegionId } = require("./util/id");
 const { ParameterSetupModal } = require("./ui/setup-modal");
-const { decorateReadingCodeBlock } = require("./reading/render");
+const { applyReadingRegions } = require("./reading/render");
+const { createTextSurface, resolveReadingRegions, findRenderedBlock } = require("./reading/source");
 const {
 	registerSelectedParameter,
 	findRegisteredRegionAtCursor,
@@ -121,19 +122,33 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 
 	async onload() {
 		setActivePlugin(this);
+		this.readingSourceCache = new Map();
 		this.savedData = Object.assign(
 			{ schemaVersion: DATA_SCHEMA_VERSION, foldsByFile: {} },
 			(await this.loadData()) || {},
 		);
 		await this.migrateSavedData();
 		this.registerEditorExtension([parameterFoldField, labelClickHandler]);
-		this.registerMarkdownPostProcessor((element, context) => {
+		// 阅读视图：把保存的记录按锚点投影到渲染后的代码块上，与编辑视图同一套匹配
+		this.registerMarkdownPostProcessor(async (element, context) => {
 			const records = this.savedData.foldsByFile[context.sourcePath];
 			if (!records?.length) return;
-			let pending = records;
-			for (const code of element.querySelectorAll("pre > code")) {
-				pending = decorateReadingCodeBlock(code, pending);
-				if (!pending.length) return;
+			const codes = element.querySelectorAll("pre > code");
+			if (!codes.length) return;
+
+			const source = await this.getReadingSource(context.sourcePath);
+			if (!source) return;
+
+			const regions = resolveReadingRegions(source.surface, source.blocks, records);
+			if (!regions.length) return;
+
+			const used = new Set();
+			for (const code of codes) {
+				const block = findRenderedBlock(source.blocks, source.text, code.textContent);
+				if (!block || used.has(block.index)) continue;
+				used.add(block.index);
+				const forBlock = regions.filter((region) => region.blockIndex === block.index);
+				if (forBlock.length) applyReadingRegions(code, forBlock);
 			}
 		});
 		this.app.workspace.onLayoutReady(() => this.restoreActiveView());
@@ -144,11 +159,17 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 		);
 		this.registerEvent(
 			this.app.vault.on("rename", async (file, oldPath) => {
+				this.readingSourceCache.delete(oldPath);
 				const records = this.savedData.foldsByFile[oldPath];
 				if (!records) return;
 				delete this.savedData.foldsByFile[oldPath];
 				this.savedData.foldsByFile[file.path] = records;
 				await this.saveData(this.savedData);
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on("modify", (file) => {
+				this.readingSourceCache.delete(file.path);
 			}),
 		);
 
@@ -276,6 +297,24 @@ module.exports = class CodeParameterFoldPlugin extends Plugin {
 				return Boolean(registered);
 			},
 		});
+	}
+
+	/**
+	 * 阅读视图要拿到「源码全文」，才能像编辑视图那样按锚点打分定位。
+	 * 一次渲染里同一篇笔记的多个代码块共享这份快照；文件改动时缓存失效。
+	 */
+	async getReadingSource(path) {
+		const cached = this.readingSourceCache.get(path);
+		if (cached) return cached;
+
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) return null;
+
+		const text = await this.app.vault.cachedRead(file);
+		const surface = createTextSurface(text);
+		const entry = { text, surface, blocks: listCodeBlocks(surface) };
+		this.readingSourceCache.set(path, entry);
+		return entry;
 	}
 
 	async migrateSavedData() {

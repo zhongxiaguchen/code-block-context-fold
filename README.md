@@ -6,7 +6,7 @@
 适用于任何写参数的场景——Shader 指令、引擎配置、命令行开关、枚举值——只要你能把它写成
 `名称[内容]`。
 
-仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.0.0
+仓库：<https://github.com/zhongxiaguchen/code-block-context-fold>　·　最新版本：3.1.0
 
 ![两种显示方式](docs/display-modes.svg)
 
@@ -24,7 +24,7 @@
 ### 手动安装（任意库通用）
 
 1. 从 [Releases](https://github.com/zhongxiaguchen/code-block-context-fold/releases) 下载
-   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.0.0.zip` 解压）。
+   `manifest.json`、`main.js`、`styles.css` 三个文件（或直接下 `code-block-context-fold-3.1.0.zip` 解压）。
 2. 在你的库目录下建文件夹 `<你的库>/.obsidian/plugins/code-block-context-fold/`。
 3. 把三个文件平铺放进去（不要多套一层文件夹）。
 4. Obsidian → 设置 → 第三方插件 → 关闭「安全模式」→ 刷新 → 启用「代码块参数折叠」。
@@ -93,7 +93,7 @@ node scripts/deploy.mjs --vault "D:\某个库"
 ## 已知限制
 
 - **阅读视图的展开状态是一次性的**：在阅读视图里点开标签只影响当前渲染，不会写回编辑视图；编辑视图以插件数据里记录的展开状态为准。
-- **阅读视图按记录里保存的原文精确匹配**。如果笔记内容被改动过、而编辑视图还没重新打开同步记录，那一段在阅读视图里会保持原样，不会折叠。
+- **阅读视图和编辑视图用同一套锚点定位**：不再要求原文一字不差，改过的内容也能找回折叠位置。代价是每次渲染会读一次笔记源码（按文件缓存，文件变动时失效）；如果两个代码块内容完全相同，会按出现顺序各自对应。
 - 方括号 `[ ]` 属于结构字符，不能出现在参数名、选项名或注释里（`_` 已经没有限制了）。
 - 笔记被改动后，插件靠锚点重新定位折叠位置；当同一段文本出现多次且锚点无法区分时，它会放弃恢复而不是猜一个位置。
 
@@ -124,6 +124,7 @@ src/
   editor/recover.js       重开笔记时的位置复原
   editor/decorations.js   CodeMirror StateField、装饰、鼠标交互
   editor/text-range.js    跨文本节点的区间定位（阅读视图用）
+  reading/source.js       阅读视图的源码快照与锚点投影（复用编辑视图的打分）
   reading/render.js       阅读视图 / 导出时的折叠渲染
   format/parameters.js    参数表达式解析与序列化
   ui/options-dom.js       选项药丸与悬浮面板的 DOM（编辑器与阅读视图共用）

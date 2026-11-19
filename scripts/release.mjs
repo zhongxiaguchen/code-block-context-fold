@@ -56,6 +56,7 @@ if (!skipTests) {
 				"test/parameters.test.mjs",
 				"test/selection.test.mjs",
 				"test/text-range.test.mjs",
+				"test/reading-source.test.mjs",
 				"test/bundle.test.mjs",
 			],
 			{ cwd: repoRoot, stdio: "inherit" },
