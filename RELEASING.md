@@ -68,83 +68,49 @@ gh release create <version> --title "Code Block Parameter Fold <version>" --note
 
 ## 6. 上架社区插件
 
-社区插件列表不是一个网站后台，而是一个 GitHub 仓库：
-[obsidianmd/obsidian-releases](https://github.com/obsidianmd/obsidian-releases)。
-上架 = 给它的 `community-plugins.json` 加一条，提 PR，等人审。
+**2026 年起流程变了**：不再向 `obsidianmd/obsidian-releases` 提 PR（该仓库已关闭 PR 功能），
+改为在官方门户 <https://community.obsidian.md> 用 Obsidian 账号提交。网上仍流传旧教程，
+照着提 PR 会卡在「An owner of this repository has disabled the ability to open pull requests」。
 
 ### 6.1 先决条件（逐条确认，缺一条就可能被打回）
 
-- [ ] 仓库**公开**，根目录有 `manifest.json`、`README.md`、`LICENSE`。
+- [ ] 仓库**公开**，默认分支根目录有 `manifest.json`、`README.md`、`LICENSE`。
 - [ ] 最新 Release 的 tag 与 `manifest.json` 的 `version` **完全一致**（不带 `v`），
       且附件里有 `main.js`、`manifest.json`、`styles.css`。
-- [ ] `manifest.json` 的 `id`、`name`、`description` 里**没有 "obsidian" 这个词**（审核明确禁止）。
+      注意：目录读的是**默认分支 HEAD 上的 manifest**，不是 release 附件里那份，两处必须同步。
+- [ ] `manifest.json` 的 `id`、`name`、`description` 里**没有 "obsidian" 这个词**。
+- [ ] `version` 是 `x.y.z` 三段式。
+- [ ] `minAppVersion` 填**实际验证过**的最低版本。
 - [ ] README 说清楚：插件做什么、怎么安装、**是否联网 / 是否收集数据**。
 - [ ] README 有一张能看懂的演示素材（录法见 [docs/demo-guide.md](docs/demo-guide.md)）。
-  目前用的是 `docs/display-modes.svg` 静态示意，换成 GIF 会更抓人。
-- [ ] 仓库名不要暗示和官方有关系。`Obsidian_Plugin` 这种名字大概率被要求改掉，
-      建议先改成 `code-block-context-fold`（改完 GitHub 会把旧地址 301 到新地址，
-      本地 `git remote set-url` 一次即可）。
-- [ ] 桌面/移动声明与实现一致：`isDesktopOnly: false` 表示你声称支持移动端，
-      没实测过就先诚实标 `true`，或者补一轮实测。
+- [ ] `isDesktopOnly` 与实现一致：没在移动端实测就标 `true`。
+- [ ] 仓库名不要暗示和官方有关系（本项目已改成 `code-block-context-fold`）。
 
 ### 6.2 提交
 
-1. Fork `obsidianmd/obsidian-releases`。
-2. 编辑根目录的 `community-plugins.json`，在**数组末尾**追加一项（保持两空格缩进）：
+1. 到 <https://obsidian.md> 注册 **Obsidian 账号**（和 GitHub 账号是两回事）。
+2. 打开 <https://community.obsidian.md> 登录，按提示**关联 GitHub 账号**——门户据此验证仓库归属。
+3. 点 **Add a plugin**。
+4. 填仓库地址：`https://github.com/zhongxiaguchen/code-block-context-fold`
+5. 提交。
 
-   ```json
-   {
-     "id": "code-block-context-fold",
-     "name": "Code Block Parameter Fold",
-     "author": "Zonvon",
-     "description": "Fold name[options] inside code blocks into a clickable tag, with an optional hover popup showing options and comments.",
-     "repo": "zhongxiaguchen/code-block-context-fold"
-   }
-   ```
+### 6.3 审核与修正
 
-   `name` 和 `description` 必须与 `manifest.json` 保持一致，否则审核会打回。
+- 先过**自动校验**：读默认分支的 `manifest.json`、查 release 附件、比对 tag 与版本。
+- 没通过的项会列在目录页上。**修正方式是「改仓库 → 递增版本号 → 发新 release」**，
+  然后等它重新抓取；只改文件不发新版本，等于没改。
+- 通过后进人工队列，几天到几周不等，期间不用催。
 
-   注意：`id` 一旦上架就**不要改**——它是插件目录名，改了等同于换一个插件。
+### 6.4 上架之后
 
-3. 提 PR，标题 `Add plugin: Code Block Parameter Fold`，正文用下面这份：
-
-   ```markdown
-   ## Plugin submission
-
-   - **Plugin ID:** `code-block-context-fold`
-   - **Repo:** https://github.com/zhongxiaguchen/code-block-context-fold
-   - **Latest release:** v<version> (tag `<version>`, assets: main.js, manifest.json, styles.css)
-
-   ### What it does
-   Folds `name[options]` patterns inside code blocks into a clickable tag.
-   A second display mode turns the same text into a pill that shows the options
-   and their comments on hover. Works in both editing and reading view.
-
-   ### Checklist
-   - [x] I am the author of this plugin.
-   - [x] The plugin is open source (GPL-3.0-or-later) and the repo is public.
-   - [x] `manifest.json` is at the repo root; the release tag matches its version.
-   - [x] The release includes `main.js`, `manifest.json`, and `styles.css`.
-   - [x] The plugin does **not** access the network and collects **no** telemetry.
-   - [x] The plugin only reads the current vault; its data file stores note paths
-         and short text anchors to restore fold positions.
-   - [x] No ads, no crypto, no closed-source code.
-   - [x] Tested on Windows; please tell me if anything looks off on macOS/Linux.
-   ```
-
-4. 等机器人跑校验（会去读你的 repo 和 release），然后人工审核。**几天到几周都正常**，
-   队列一直很长；期间不用反复催。
-5. 合并后几小时内，插件会出现在 Obsidian 的「社区插件」里。
-
-### 6.3 上架之后
-
-- **更新版本不用再提 PR**：改 `version` → 发新 Release（tag 同名）→ 客户端自动发现。
-- **改仓库地址、改显示名**：要再提一个 PR 改 `community-plugins.json` 里那条。
-- **下架**：提 PR 删掉那条。
-- 客户端会拉一份 `community-plugins.json` 缓存，刚合并完可能延迟几小时才看得到。
+- **更新版本不用再提交**：发布符合规则的新 Release，目录会自动同步。
+- `id` 永远别改——它是插件目录里的唯一标识，改了等同于换一个插件。
+- 改名、换仓库地址要在门户里更新插件信息，不走 PR。
 
 ## 常见坑
 
+- **照着旧教程去提 PR** → `obsidianmd/obsidian-releases` 已关闭 PR，会卡在
+  「An owner of this repository has disabled the ability to open pull requests」。改走 community.obsidian.md。
 - **tag 带 `v`** → 用户装不上，报 “no release found”。
 - **Release 是空壳** → 只有自动生成的源码 zip，没有三个安装文件。先等 1–2 分钟再刷新：
   附件上传和页面缓存都有延迟，刚推完 tag 就查很容易误判。等过了仍然没有，才是工作流没跑成；
