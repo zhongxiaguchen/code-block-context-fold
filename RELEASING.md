@@ -156,7 +156,8 @@ gh release create <version> --title "代码块参数折叠 <version>" --notes-fi
 ## 常见坑
 
 - **tag 带 `v`** → 用户装不上，报 “no release found”。
-- **Release 是空壳** → 只有自动生成的源码 zip，没有三个安装文件。多半是工作流没触发成功；
+- **Release 是空壳** → 只有自动生成的源码 zip，没有三个安装文件。先等 1–2 分钟再刷新：
+  附件上传和页面缓存都有延迟，刚推完 tag 就查很容易误判。等过了仍然没有，才是工作流没跑成；
   删掉远端 tag 重推一次即可（`git push origin :refs/tags/<version>` 再 `git push origin <version>`）。
 - **忘了提交构建后的 `main.js`** → Release 里的 `main.js` 和仓库不一致。
 - **把 `data.json` 提交了** → 泄露你自己的笔记路径和正文片段。仓库 `.gitignore` 已挡住，别手动 `git add -f`。
