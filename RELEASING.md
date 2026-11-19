@@ -66,10 +66,29 @@ gh release create <version> --title "代码块参数折叠 <version>" --notes-fi
 - 用 [BRAT](https://github.com/TfTHacker/obsidian42-brat) 添加 `zhongxiaguchen/code-block-context-fold`，
   确认能从 Release 装成功（这条最接近真实用户路径）。
 
-## 6. 提交到社区插件列表（可选，但“发布出去”通常指这个）
+## 6. 上架社区插件
 
-1. Fork [obsidianmd/obsidian-releases](https://github.com/obsidianmd/obsidian-releases)。
-2. 在 `community-plugins.json` 末尾追加一项（按字母序插入更好看）：
+社区插件列表不是一个网站后台，而是一个 GitHub 仓库：
+[obsidianmd/obsidian-releases](https://github.com/obsidianmd/obsidian-releases)。
+上架 = 给它的 `community-plugins.json` 加一条，提 PR，等人审。
+
+### 6.1 先决条件（逐条确认，缺一条就可能被打回）
+
+- [ ] 仓库**公开**，根目录有 `manifest.json`、`README.md`、`LICENSE`。
+- [ ] 最新 Release 的 tag 与 `manifest.json` 的 `version` **完全一致**（不带 `v`），
+      且附件里有 `main.js`、`manifest.json`、`styles.css`。
+- [ ] `manifest.json` 的 `id`、`name`、`description` 里**没有 "obsidian" 这个词**（审核明确禁止）。
+- [ ] README 说清楚：插件做什么、怎么安装、**是否联网 / 是否收集数据**。
+- [ ] 仓库名不要暗示和官方有关系。`Obsidian_Plugin` 这种名字大概率被要求改掉，
+      建议先改成 `code-block-context-fold`（改完 GitHub 会把旧地址 301 到新地址，
+      本地 `git remote set-url` 一次即可）。
+- [ ] 桌面/移动声明与实现一致：`isDesktopOnly: false` 表示你声称支持移动端，
+      没实测过就先诚实标 `true`，或者补一轮实测。
+
+### 6.2 提交
+
+1. Fork `obsidianmd/obsidian-releases`。
+2. 编辑根目录的 `community-plugins.json`，在**数组末尾**追加一项（保持两空格缩进）：
 
    ```json
    {
@@ -81,14 +100,64 @@ gh release create <version> --title "代码块参数折叠 <version>" --notes-fi
    }
    ```
 
-3. 提 PR。审核会检查：仓库公开、根目录有 `manifest.json`、Release 含三个资产、
-   tag 与版本一致、README 有安装说明、有 LICENSE。
+   想更容易被英文用户搜到，可以把 `name` 和 `description` 换成英文，例如：
+
+   ```json
+   {
+     "id": "code-block-context-fold",
+     "name": "Code Block Parameter Fold",
+     "author": "Zonvon",
+     "description": "Fold `name[options]` inside code blocks into a clickable tag, with an optional hover popup showing options and comments.",
+     "repo": "zhongxiaguchen/code-block-context-fold"
+   }
+   ```
+
+   注意：`id` 一旦上架就**不要改**——它是插件目录名，改了等同于换一个插件。
+
+3. 提 PR，标题 `Add plugin: 代码块参数折叠`，正文用下面这份：
+
+   ```markdown
+   ## Plugin submission
+
+   - **Plugin ID:** `code-block-context-fold`
+   - **Repo:** https://github.com/zhongxiaguchen/code-block-context-fold
+   - **Latest release:** v3.3.0 (tag `3.3.0`, assets: main.js, manifest.json, styles.css)
+
+   ### What it does
+   Folds `name[options]` patterns inside code blocks into a clickable tag.
+   A second display mode turns the same text into a pill that shows the options
+   and their comments on hover. Works in both editing and reading view.
+
+   ### Checklist
+   - [x] I am the author of this plugin.
+   - [x] The plugin is open source (GPL-3.0-or-later) and the repo is public.
+   - [x] `manifest.json` is at the repo root; the release tag matches its version.
+   - [x] The release includes `main.js`, `manifest.json`, and `styles.css`.
+   - [x] The plugin does **not** access the network and collects **no** telemetry.
+   - [x] The plugin only reads the current vault; its data file stores note paths
+         and short text anchors to restore fold positions.
+   - [x] No ads, no crypto, no closed-source code.
+   - [x] Tested on Windows; please tell me if anything looks off on macOS/Linux.
+   ```
+
+4. 等机器人跑校验（会去读你的 repo 和 release），然后人工审核。**几天到几周都正常**，
+   队列一直很长；期间不用反复催。
+5. 合并后几小时内，插件会出现在 Obsidian 的「社区插件」里。
+
+### 6.3 上架之后
+
+- **更新版本不用再提 PR**：改 `version` → 发新 Release（tag 同名）→ 客户端自动发现。
+- **改仓库地址、改显示名**：要再提一个 PR 改 `community-plugins.json` 里那条。
+- **下架**：提 PR 删掉那条。
+- 客户端会拉一份 `community-plugins.json` 缓存，刚合并完可能延迟几小时才看得到。
 
 ## 常见坑
 
 - **tag 带 `v`** → 用户装不上，报 “no release found”。
-- **忘了提交构建后的 `main.js`** → Release 里的 `main.js` 和仓库不一致，用户看到的和源码对不上。
+- **Release 是空壳** → 只有自动生成的源码 zip，没有三个安装文件。多半是工作流没触发成功；
+  删掉远端 tag 重推一次即可（`git push origin :refs/tags/<version>` 再 `git push origin <version>`）。
+- **忘了提交构建后的 `main.js`** → Release 里的 `main.js` 和仓库不一致。
 - **把 `data.json` 提交了** → 泄露你自己的笔记路径和正文片段。仓库 `.gitignore` 已挡住，别手动 `git add -f`。
 - **一个仓库塞多个插件** → 社区列表只认仓库根目录的那一份 `manifest.json`，第二个插件必须换仓库。
-- **仓库名和插件 id 不一致** → 能发布，但用户在 BRAT 里看到的名字会比较迷惑。本仓库已改名为
-  `code-block-context-fold`，与 id 对齐；以后想改名建议改仓库而不是改 id，id 一改老用户的折叠记录就找不到了。
+- **仓库名带 Obsidian** → 容易被认为在冒充官方，审核会要求改名。
+- **id 改名** → 等同于换一个插件，老用户的 `data.json` 和已装的实例都会失去关联。改名只改仓库，别改 id。

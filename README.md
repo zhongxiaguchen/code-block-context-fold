@@ -97,6 +97,8 @@ node scripts/deploy.mjs --vault "D:\某个库"
 
 ## 数据与隐私
 
+**不联网、不收集任何数据、没有统计和遥测。** 插件只做两件事：读当前库里的笔记，把折叠位置写进本机的一个 json。
+
 折叠记录存在 `.obsidian/plugins/code-block-context-fold/data.json`，只在本机：
 
 - 记录的是**库内相对路径**和用于重新定位的锚点（代码块语言、块序号、行号、前后 64 字符上下文）。
